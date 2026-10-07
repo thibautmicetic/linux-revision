@@ -143,7 +143,9 @@
       }
     }
   };
-  APP.generators = G;
-  APP.genQuestion = (type) => G[type].make();
-  APP.genRandom = (chapter) => { const keys = Object.keys(G).filter((k) => !chapter || G[k].chapter === chapter); return G[pick(keys)].make(); };
+  for (const k in G) G[k].subject = G[k].subject || 'linux';
+  APP.generators = Object.assign(APP.generators || {}, G);
+  APP.genQuestion = (type) => { const it = APP.generators[type].make(); it.gen = type; return it; };
+  // question aléatoire d'une matière (ou d'un chapitre)
+  APP.genRandom = (subject, chapter) => { const all = APP.generators; const keys = Object.keys(all).filter((k) => (!subject || all[k].subject === subject) && (!chapter || all[k].chapter === chapter)); return APP.genQuestion(pick(keys)); };
 })();

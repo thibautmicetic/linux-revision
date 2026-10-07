@@ -1,7 +1,7 @@
 {
-  "name": "Linux Révision — ESEO E4a",
-  "short_name": "Linux Révision",
-  "description": "Révision hors ligne du module Administration Linux : fiches, quiz, commandes, terminal simulé et TP guidés.",
+  "name": "Révisions ESEO — Linux & Maths",
+  "short_name": "Révisions",
+  "description": "Révisions hors ligne : Administration Linux (terminal simulé, TP guidés) et Mathématiques (fiches, formulaire, exercices où l'on tape les formules).",
   "lang": "fr",
   "start_url": "./index.html",
   "scope": "./",

@@ -1,49 +1,58 @@
-# Linux Révision — ESEO E4a (Administration Linux)
+# Révisions ESEO — Linux & Maths
 
-Application de révision **100 % hors ligne** (PWA) pour les cours 1 à 4 et les TP 1 à 4 :
+Application de révision **100 % hors ligne** (PWA), organisée en **matières** :
 
-- **Fiches de cours** (40) : tout le cours + les notions des TP, avec blocs de commandes cliquables.
-- **Quiz** (200 questions) : chaque mauvaise réponse est expliquée (pourquoi elle est fausse, pourquoi la bonne est juste).
-- **Tape la commande** (200 exercices) : un correcteur analyse ta commande (options, arguments, `sudo`, `>` vs `>>`, `&&` vs `;`…), accepte les variantes équivalentes et explique précisément chaque erreur.
-- **Flashcards** (commandes + notions) avec répétition espacée.
-- **Calculs & réflexes** générés à l'infini : octal ↔ symbolique, effet d'un `chmod`, `umask`, « qui peut faire quoi ? », adressage IP, signaux, ports, états STAT.
-- **Terminal Debian simulé** : système de fichiers avec vrais droits (rwx, SUID, SGID, sticky, umask), utilisateurs/groupes/sudo/su/newgrp, processus et signaux (jobs, Ctrl+Z, fg/bg, kill, nice, zombies, orphelins, trap, nohup), réseau (ip, ping, dig, ss, /etc/network/interfaces, /etc/hosts), SSH avec clés vers une 2e machine (VM-B), UFW, fail2ban, apt, systemctl, journalctl, nano, top…
-- **39 TP pratiques guidés** reprenant les exercices des TP, validés automatiquement étape par étape (indice + solution).
-- **Examen blanc** chronométré, **suivi de progression** (maîtrise par chapitre, série de jours, points faibles, activité), export/import de la progression.
+## Administration Linux (cours 1 à 4 + TP 1 à 4)
+- **Fiches de cours** (40), **quiz** (200 questions, chaque mauvaise réponse expliquée).
+- **Tape la commande** (200 exercices) : le correcteur analyse ta commande (options, arguments, `sudo`, `>` vs `>>`, `&&` vs `;`…), accepte les variantes équivalentes et explique chaque erreur.
+- **Terminal Debian simulé** (droits, utilisateurs, processus, signaux, réseau, SSH vers une 2e machine, UFW, fail2ban, apt, systemctl, nano, top…) et **39 TP guidés** validés automatiquement.
+
+## Mathématiques (théorie de base du cycle ingénieur)
+12 chapitres : calcul algébrique, trigonométrie, fonctions usuelles, limites/DL, dérivation, primitives et intégrales, nombres complexes, équations différentielles, suites et séries, Fourier et Laplace, algèbre linéaire, probabilités.
+- **Fiches** avec formules mises en forme (KaTeX), cercle trigonométrique interactif et courbes.
+- **Formulaire** consultable et révisable en flashcards.
+- **Quiz** avec explication de chaque mauvaise réponse.
+- **Tape la formule** : tu écris le résultat en syntaxe calculatrice (`2x sin(x) + x^2 cos(x)`, `sqrt(3)/2`, `pi/6 ; 5pi/6`…). La réponse est comparée par **équivalence mathématique** (toute forme juste est acceptée) et les erreurs sont analysées : signe, facteur oublié (dérivée intérieure), constante, dérivé au lieu de primitiver, degrés au lieu de radians, valeur approchée, solutions manquantes, forme non développée…
+- **Calculs & réflexes** générés à l'infini (valeurs sur le cercle, équations trigo, identités remarquables, second degré, exp/ln, DL, dérivées, primitives, complexes, équations différentielles, déterminants, probabilités) pour l'entraînement quotidien.
+- **Labo** : tracer des fonctions, voir leur dérivée, cercle trigonométrique.
+
+## Pour toutes les matières
+Répétition espacée, révision du jour, examen blanc chronométré, « mes erreurs », suivi de progression (maîtrise par chapitre, réussite, points faibles, activité, série de jours), export/import de la progression.
 
 ## Lancer
 
 - **macOS** : double-clique sur `Lancer l'application.command` (ouvre http://localhost:8765).
-- Ou dans un terminal, depuis ce dossier :
+- Ou : `python3 -m http.server 8765` dans ce dossier, puis http://localhost:8765.
+- En ligne : https://thibautmicetic.github.io/linux-revision/ (sur téléphone : Safari › Partager › Sur l'écran d'accueil, ou Chrome › Installer l'application).
 
-  ```bash
-  python3 -m http.server 8765
-  ```
+La progression est enregistrée localement dans le navigateur.
 
-  puis ouvre http://localhost:8765.
+## Ajouter une matière
 
-Au premier chargement, l'application se met en cache (badge « Disponible hors ligne »). Tu peux alors l'**installer** (Chrome/Edge : icône « Installer » dans la barre d'adresse ; Safari macOS : Fichier › Ajouter au Dock) et l'utiliser sans connexion ni serveur.
+1. Déclarer la matière dans `js/subjects.js` (`APP.registerSubject({ id, title, short, color, badge, memo, tool, exo, … })`).
+2. Créer ses chapitres dans `js/data/<matière>/…js` avec `APP.registerChapter({ subject: '<id>', … })` (même format que les chapitres existants : `sections`, `quiz`, `exercises`, `flashcards`, `formulas` ou `commands`).
+3. Les ajouter dans `index.html`, puis relancer `python3 tools/build-sw.py`.
 
-Ouvrir directement `index.html` fonctionne aussi, mais sans le mode hors ligne/installable.
-
-**Sur téléphone** : une PWA doit être servie en HTTPS. Le plus simple est de déposer ce dossier sur un hébergement statique (GitHub Pages, Netlify…), de l'ouvrir une fois sur le téléphone puis « Ajouter à l'écran d'accueil ». Elle fonctionne ensuite hors ligne.
-
-La progression est enregistrée localement dans le navigateur (onglet **Progrès** › Exporter pour la sauvegarder ou la transférer).
+Le contenu maths se vérifie avec `node tools/validate-maths.js js/data/maths/m1.js` (rendu LaTeX, réponses acceptées, erreurs typiques refusées).
 
 ## Structure
 
 ```
 index.html, manifest.webmanifest, sw.js   PWA (sw.js est généré par tools/build-sw.py)
 css/style.css
-js/core.js          registre du contenu, progression, répétition espacée
-js/shparse.js       analyse syntaxique bash (partagée)
-js/cmdinfo.js       dictionnaire des commandes et options (explications + man)
-js/checker.js       correcteur des exercices « tape la commande »
-js/sim/             terminal simulé (machine, shell, commandes, interface)
-js/data/c1..c4.js   contenu des chapitres (fiches, commandes, quiz, exercices)
-js/missions/        TP pratiques guidés
-js/generators.js    exercices générés
+vendor/katex/       rendu des formules (KaTeX, licence MIT), embarqué pour le hors ligne
+js/core.js          matières, chapitres, progression, répétition espacée
+js/subjects.js      déclaration des matières
 js/app.js           interface
+js/shparse.js, js/cmdinfo.js, js/checker.js, js/sim/   Linux : correcteur de commandes et terminal simulé
+js/missions/, js/missions.js                            Linux : TP guidés
+js/generators.js                                        Linux : exercices générés
+js/math/expr.js     maths : lecture des formules, évaluation (complexes), LaTeX, dérivation
+js/math/check.js    maths : correcteur par équivalence + explication des erreurs
+js/math/render.js   maths : rendu KaTeX, cercle trigonométrique, courbes, clavier
+js/math/gen.js      maths : exercices générés
+js/data/c1..c4.js   contenu Linux
+js/data/maths/      contenu maths (m1..m12)
 ```
 
-Après toute modification d'un fichier, relancer `python3 tools/build-sw.py` pour mettre à jour le cache hors ligne.
+Après toute modification, relancer `python3 tools/build-sw.py` pour mettre à jour le cache hors ligne.

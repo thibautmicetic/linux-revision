@@ -5,19 +5,33 @@
   APP.chapters = APP.chapters || [];
   APP.missions = APP.missions || [];
 
+  // Matières : chaque partie de l'application (Linux, Maths…). Pour en ajouter une : APP.registerSubject({...})
+  // puis des chapitres avec subject: '<id>'.
+  APP.subjects = APP.subjects || [];
+  APP.registerSubject = function (s) {
+    if (APP.subjects.find((x) => x.id === s.id)) return;
+    APP.subjects.push(Object.assign({ tools: [], order: 99 }, s));
+    APP.subjects.sort((a, b) => a.order - b.order);
+  };
+  APP.subject = (id) => APP.subjects.find((s) => s.id === id);
   APP.registerChapter = function (ch) {
+    ch.subject = ch.subject || 'linux';
     ch.sections = ch.sections || [];
     ch.commands = ch.commands || [];
+    ch.formulas = ch.formulas || [];
     ch.flashcards = ch.flashcards || [];
     ch.quiz = ch.quiz || [];
     ch.exercises = ch.exercises || [];
-    ch.quiz.forEach((q) => { q.kind = 'quiz'; q.chapter = ch.id; });
-    ch.exercises.forEach((x) => { x.kind = 'exo'; x.chapter = ch.id; });
-    ch.commands.forEach((c) => { c.kind = 'cmd'; c.chapter = ch.id; });
-    ch.flashcards.forEach((f) => { f.kind = 'card'; f.chapter = ch.id; });
+    ch.quiz.forEach((q) => { q.kind = 'quiz'; q.chapter = ch.id; q.subject = ch.subject; });
+    ch.exercises.forEach((x) => { x.kind = 'exo'; x.chapter = ch.id; x.subject = ch.subject; });
+    ch.commands.forEach((c) => { c.kind = 'cmd'; c.chapter = ch.id; c.subject = ch.subject; });
+    ch.formulas.forEach((c) => { c.kind = 'formula'; c.chapter = ch.id; c.subject = ch.subject; });
+    ch.flashcards.forEach((f) => { f.kind = 'card'; f.chapter = ch.id; f.subject = ch.subject; });
+    ch.cards = ch.flashcards.concat(ch.commands, ch.formulas);
     APP.chapters.push(ch);
-    APP.chapters.sort((a, b) => a.num - b.num);
+    APP.chapters.sort((a, b) => (a.subject === b.subject ? a.num - b.num : a.subject < b.subject ? -1 : 1));
   };
+  APP.chaptersOf = (subj) => APP.chapters.filter((c) => c.subject === subj);
   APP.registerMission = function (m) { APP.missions.push(m); };
   APP.chapter = (id) => APP.chapters.find((c) => c.id === id);
 
@@ -62,11 +76,13 @@
   P.save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* stockage indisponible */ } };
   P.item = (id) => state.items[id];
 
-  function bumpDaily(ok) {
+  function bumpDaily(ok, subj) {
     const k = U.today();
     const d = (state.daily[k] = state.daily[k] || { n: 0, ok: 0 });
     d.n++; if (ok) d.ok++;
+    if (subj) { d.by = d.by || {}; d.by[subj] = (d.by[subj] || 0) + 1; }
   }
+  const subjOfId = (id) => (/^(m\d+-|gen-m)/.test(id) ? 'maths' : 'linux');
 
   // Enregistre une réponse. ok = bonne réponse du premier coup.
   P.record = function (id, ok, extra) {
@@ -81,7 +97,7 @@
       state.xp += 2;
     }
     it.due = Date.now() + BOX_DAYS[it.box] * DAY - (it.box <= 1 ? 0 : 3600000);
-    bumpDaily(ok);
+    bumpDaily(ok, (extra && extra.subject) || subjOfId(id));
     P.save();
   };
   // Flashcard : auto-évaluation (0 = à revoir, 1 = difficile, 2 = facile)
@@ -93,13 +109,13 @@
     else { it.box = Math.min(6, (it.box || 1) + 1); it.ok++; }
     it.due = Date.now() + BOX_DAYS[it.box] * DAY;
     state.xp += grade ? 5 : 1;
-    bumpDaily(grade > 0);
+    bumpDaily(grade > 0, subjOfId(id));
     P.save();
   };
   P.markSection = (id) => { if (!state.sections[id]) { state.sections[id] = Date.now(); state.xp += 3; P.save(); } };
   P.missionStep = function (mid, stepIdx, total) {
     const m = (state.missions[mid] = state.missions[mid] || { steps: {}, done: false });
-    if (!m.steps[stepIdx]) { m.steps[stepIdx] = Date.now(); state.xp += 8; bumpDaily(true); }
+    if (!m.steps[stepIdx]) { m.steps[stepIdx] = Date.now(); state.xp += 8; bumpDaily(true, 'linux'); }
     if (Object.keys(m.steps).length >= total && !m.done) { m.done = Date.now(); state.xp += 40; }
     P.save();
   };
@@ -123,7 +139,7 @@
 
   P.chapterStats = function (ch) {
     const q = ch.quiz.map((x) => x.id), x = ch.exercises.map((e) => e.id);
-    const cards = ch.commands.map((c) => c.id).concat(ch.flashcards.map((f) => f.id));
+    const cards = ch.cards.map((c) => c.id);
     const secs = ch.sections.map((s) => s.id);
     const missions = APP.missions.filter((m) => m.chapter === ch.id);
     const read = secs.filter((id) => state.sections[id]).length;
@@ -149,11 +165,13 @@
     return s;
   };
   P.todayCount = () => (state.daily[U.today()] || { n: 0 }).n;
-  P.dueCount = function () {
+  P.dueCount = function (subj) {
     let n = 0;
-    for (const ch of APP.chapters) for (const it of [].concat(ch.quiz, ch.exercises, ch.commands, ch.flashcards)) if (P.isDue(it.id)) n++;
+    for (const ch of APP.chapters) if (!subj || ch.subject === subj) for (const it of [].concat(ch.quiz, ch.exercises, ch.cards)) if (P.isDue(it.id)) n++;
     return n;
   };
+  // activité du jour par matière (nombre de réponses)
+  P.subjectToday = (subj) => ((state.daily[U.today()] || {}).by || {})[subj] || 0;
   P.export = () => JSON.stringify(state, null, 1);
   P.import = (txt) => { const s = JSON.parse(txt); if (!s || typeof s !== 'object' || !s.items) throw new Error('Fichier invalide'); state = Object.assign(blank(), s); P.save(); };
   P.reset = () => { state = blank(); P.save(); };
