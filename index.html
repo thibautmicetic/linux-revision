@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Linux Révision — ESEO</title>
+  <meta name="description" content="Révision hors ligne du module Administration Linux (E4a) : fiches, quiz, commandes, terminal simulé et TP guidés.">
+  <meta name="theme-color" content="#0f1420" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f5f6fa" media="(prefers-color-scheme: light)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Linux Révision">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="side" id="side">
+      <a class="brand" href="#/"><span class="logo">$_</span><span><b>Linux Révision</b><small>ESEO · E4a</small></span></a>
+      <nav class="nav" id="nav"></nav>
+      <div class="side-foot"><button class="btn ghost sm" id="themeBtn" type="button">Thème</button><span id="offline" class="pill"></span></div>
+    </aside>
+    <main id="main" tabindex="-1"></main>
+    <nav class="bottom" id="bottom"></nav>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript>Cette application nécessite JavaScript.</noscript>
+
+  <script src="js/core.js"></script>
+  <script src="js/shparse.js"></script>
+  <script src="js/cmdinfo.js"></script>
+  <script src="js/checker.js"></script>
+  <script src="js/sim/system.js"></script>
+  <script src="js/sim/shell.js"></script>
+  <script src="js/sim/builtins.js"></script>
+  <script src="js/sim/cmd-files.js"></script>
+  <script src="js/sim/cmd-proc.js"></script>
+  <script src="js/sim/cmd-users.js"></script>
+  <script src="js/sim/cmd-net.js"></script>
+  <script src="js/sim/cmd-sys.js"></script>
+  <script src="js/sim/world.js"></script>
+  <script src="js/sim/terminal.js"></script>
+  <script src="js/data/c1.js"></script>
+  <script src="js/data/c2.js"></script>
+  <script src="js/data/c3.js"></script>
+  <script src="js/data/c4.js"></script>
+  <script src="js/missions.js"></script>
+  <script src="js/missions/m-c1.js"></script>
+  <script src="js/missions/m-c2.js"></script>
+  <script src="js/missions/m-c3.js"></script>
+  <script src="js/missions/m-c4.js"></script>
+  <script src="js/generators.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
