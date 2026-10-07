@@ -107,9 +107,10 @@
         else if (v.abs() > 1e-12 && u.div(v).real && Math.abs(u.div(v).re - Math.round(u.div(v).re)) < 1e-9 && Math.abs(u.div(v).re) > 1) res.msgs.push('Ta valeur est ' + M.fmt(u.div(v).re) + ' fois trop grande : un facteur en trop ?');
         else if (u.abs() > 1e-12 && v.div(u).real && Math.abs(v.div(u).re - Math.round(v.div(u).re)) < 1e-9 && Math.abs(v.div(u).re) > 1) res.msgs.push('Ta valeur est ' + M.fmt(v.div(u).re) + ' fois trop petite : un facteur oublié ?');
         if (!v.real && u.real) res.msgs.push('La réponse attendue est un nombre complexe (partie imaginaire non nulle).');
-        res.mine = 'ta réponse vaut ' + M.fmt(u, 4);
+        res.userVal = M.fmt(u, 4); res.expVal = M.fmt(v, 4);
+        res.mine = 'ta réponse vaut ' + M.fmt(u, 4) + ', la bonne réponse vaut ' + M.fmt(v, 4);
       }
-      if (!res.msgs.length) res.msgs.push('Ce n\'est pas la bonne valeur.');
+      if (!res.msgs.length) res.msgs.push('Ce n\'est pas la bonne valeur : compare avec la correction détaillée pour repérer l\'étape qui diffère.');
       return res;
     }
     if (mode === 'set' || mode === 'tuple') {

@@ -38,8 +38,9 @@
   /* ---------- utilitaires ---------- */
   const U = (APP.util = {});
   U.esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  // texte brut + `code` inline + **gras** + retours à la ligne
+  // texte brut + `code` inline + **gras** + retours à la ligne (+ balises simples <b>, <i>, <sup>, <br> tolérées)
   U.md = (s) => U.esc(s)
+    .replace(/&lt;(\/?)(b|i|em|strong|sup|sub)&gt;/g, '<$1$2>').replace(/&lt;br\s*\/?&gt;/g, '<br>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
     .replace(/\n/g, '<br>');

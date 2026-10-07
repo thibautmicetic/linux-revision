@@ -359,7 +359,10 @@
     const ch = it.chapter ? chOf(it.chapter) : null;
     const total = S.items.length;
     let h = '<div class="page"><div class="sess"><div class="sess-top"><a class="btn sm ghost" href="' + S.back + '">✕</a><div class="bar"><i style="width:' + (S.i / total) * 100 + '%"></i></div><span class="small muted">' + (S.i + 1) + '/' + total + '</span>' + (S.limit ? '<span class="pill warn" id="timer"></span>' : '') + '</div>';
-    h += '<div class="qcard" data-ch="' + (it.chapter || '') + '"><div class="qmeta">' + (S.exam ? '<span class="pill warn">Examen</span>' : '') + (ch ? '<span class="pill">' + (math ? 'Maths' : 'Linux') + ' · ch. ' + ch.num + '</span>' : '<span class="pill acc">Calcul</span>') + '<span class="pill acc">' + KLABEL[k] + '</span>' + (it.src ? '<span class="pill">' + esc(it.src) + '</span>' : '') + (it.level === 3 ? '<span class="pill ko">difficile</span>' : it.level === 2 ? '<span class="pill warn">moyen</span>' : '') + '</div>';
+    const gch = !ch && it.chapter ? chOf(it.chapter) : null;
+    const cch = ch || gch;
+    const topic = it.topic || (it.gen && APP.generators[it.gen] ? APP.generators[it.gen].label : '');
+    h += '<div class="qcard" data-ch="' + (it.chapter || '') + '"><div class="qtheme">' + (cch ? '<span class="qt-ch">' + (math ? 'Maths' : 'Linux') + ' · ' + cch.num + '. ' + esc(cch.title) + '</span>' : '') + (topic ? '<span class="qt-sep">›</span><span class="qt-topic">' + esc(topic) + '</span>' : '') + '</div><div class="qmeta">' + (S.exam ? '<span class="pill warn">Examen</span>' : '') + (it.kind === 'gen' ? '<span class="pill acc">Calcul généré</span>' : '') + '<span class="pill acc">' + KLABEL[k] + '</span>' + (it.src ? '<span class="pill">' + esc(it.src) + '</span>' : '') + (it.level === 3 ? '<span class="pill ko">difficile</span>' : it.level === 2 ? '<span class="pill warn">moyen</span>' : '') + '</div>';
     if (k === 'qcm') {
       const order = it.choices.map((c, i) => i);
       const shuf = !it.choices.some((c) => /toutes|aucune|les deux|A et B/i.test(c)) && !it.gen;
@@ -395,7 +398,7 @@
     const next = () => { S.i++; pageSession(); window.scrollTo(0, 0); };
     const record = (ok, answer, extra) => { S.results.push(Object.assign({ it, ok, answer }, extra || {})); P.record(it.id, ok, { answer, subject: it.subject || S.subject }); };
     const contBtn = (label) => '<div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="contB">' + (label || (S.i + 1 < S.items.length ? 'Continuer' : 'Voir le bilan')) + ' →</button></div>';
-    const showFb = (html) => { const fb = $('#fb'); fb.innerHTML = html; if (math) mathify(fb); bindTry(fb); const b = $('#contB'); if (b) { b.onclick = next; setTimeout(() => b.focus(), 30); } };
+    const showFb = (html) => { const fb = $('#fb'); fb.innerHTML = html; if (math) mathify(fb); bindTry(fb); bindSheets(fb); const b = $('#contB'); if (b) { b.onclick = next; setTimeout(() => b.focus(), 30); } };
     const keyH = (e) => {
       if (k === 'qcm' && /^[1-9]$/.test(e.key) && !$('.choice:disabled')) { const b = $$('.choice')[+e.key - 1]; if (b) b.click(); }
       else if (e.key === 'Enter' && $('#contB') && document.activeElement !== $('#contB') && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#contB').click(); }
@@ -424,7 +427,7 @@
         record(ok, v);
         inp.disabled = true; $('#ansF button').disabled = true;
         if (S.exam) return next();
-        showFb('<div class="fb ' + (ok ? 'ok' : 'ko') + '"><h4>' + (ok ? '✓ Correct' : '✗ Incorrect') + '</h4>' + (ok ? '' : '<div>Ta réponse : <code>' + esc(v) + '</code></div><div>Réponse attendue : <code>' + esc(it.accept[0]) + '</code>' + (it.accept.length > 1 ? ' <span class="muted small">(ou ' + it.accept.slice(1).map((a) => '<code>' + esc(a) + '</code>').join(', ') + ')</span>' : '') + '</div>') + (it.explain ? '<div class="exp">' + md(it.explain) + '</div>' : '') + '</div>' + contBtn());
+        showFb('<div class="fb ' + (ok ? 'ok' : 'ko') + '"><h4>' + (ok ? '✓ Correct' : '✗ Incorrect') + '</h4>' + (ok ? '' : '<div>Ta réponse : <code>' + esc(v) + '</code></div><div>Réponse attendue : <code>' + esc(it.accept[0]) + '</code>' + (it.accept.length > 1 ? ' <span class="muted small">(ou ' + it.accept.slice(1).map((a) => '<code>' + esc(a) + '</code>').join(', ') + ')</span>' : '') + '</div>') + correctionHtml(it, {}) + '</div>' + contBtn());
       };
     } else if (k === 'exo') {
       const inp = $('#ans'); setTimeout(() => inp.focus(), 30);
@@ -439,8 +442,8 @@
         if (r.ok) {
           inp.disabled = true; $('#ansF button').disabled = true;
           const others = it.answers.filter((a) => a !== r.expected);
-          showFb('<div class="fb ok"><h4>✓ ' + (attempts > 1 ? 'Correct (au ' + attempts + 'e essai)' : 'Correct !') + '</h4>' + (r.notes.length ? '<ul>' + r.notes.map((n) => '<li>' + md(n) + '</li>').join('') + '</ul>' : '') + '<div class="exp"><b>Décomposition</b><br>' + md(it.explain || '') + (others.length ? '<div class="small muted" style="margin-top:6px">Autre(s) réponse(s) acceptée(s) : ' + others.map((a) => '<code>' + esc(a) + '</code>').join(' · ') + '</div>' : '') + '</div><div class="row" style="margin-top:10px"><button class="btn sm ghost" data-try="' + esc(v) + '">Essayer dans le terminal</button></div></div>' + contBtn());
-        } else wrongBox(r, inp, attempts, () => '<div class="exp"><div>Réponse attendue :</div><div class="ans">$ ' + esc(r.expected) + '</div>' + (it.answers.length > 1 ? '<div class="small muted">ou : ' + it.answers.filter((a) => a !== r.expected).map((a) => '<code>' + esc(a) + '</code>').join(' · ') + '</div>' : '') + '<p><b>Décomposition</b><br>' + md(it.explain || '') + '</p></div>');
+          showFb('<div class="fb ok"><h4>✓ ' + (attempts > 1 ? 'Correct (au ' + attempts + 'e essai)' : 'Correct !') + '</h4>' + (r.notes.length ? '<ul>' + r.notes.map((n) => '<li>' + md(n) + '</li>').join('') + '</ul>' : '') + '<div class="exp"><b>Décomposition</b><br>' + md(it.explain || '') + (others.length ? '<div class="small muted" style="margin-top:6px">Autre(s) réponse(s) acceptée(s) : ' + others.map((a) => '<code>' + esc(a) + '</code>').join(' · ') + '</div>' : '') + '</div><div class="row" style="margin-top:10px"><button class="btn sm ghost" data-try="' + esc(v) + '">Essayer dans le terminal</button></div>' + ficheLinks(it) + '</div>' + contBtn());
+        } else wrongBox(r, inp, attempts, () => '<div class="exp"><div>Réponse attendue :</div><div class="ans">$ ' + esc(r.expected) + '</div>' + (it.answers.length > 1 ? '<div class="small muted">ou : ' + it.answers.filter((a) => a !== r.expected).map((a) => '<code>' + esc(a) + '</code>').join(' · ') + '</div>' : '') + '<p><b>Décomposition</b><br>' + md(it.explain || '') + '</p>' + ficheLinks(it) + '</div>');
       };
     } else if (k === 'mexo') {
       const inp = $('#ans'); setTimeout(() => inp.focus(), 30);
@@ -470,8 +473,8 @@
         const expTex = r.texExpected || '';
         if (r.ok) {
           inp.disabled = true; $('#ansF button').disabled = true;
-          showFb('<div class="fb ok"><h4>✓ ' + (attempts > 1 ? 'Correct (au ' + attempts + 'e essai)' : 'Correct !') + '</h4>' + (r.texUser ? '<div>Ta réponse : ' + esc(r.texUser) + '</div>' : '') + (r.notes.length ? '<ul>' + r.notes.map((n) => '<li>' + md(n) + '</li>').join('') + '</ul>' : '') + '<div class="exp"><b>Correction</b><br>' + md(it.explain || '') + '</div></div>' + contBtn());
-        } else wrongBox(r, inp, attempts, () => '<div class="exp"><div>Réponse attendue : ' + esc(expTex) + ' <span class="small muted">— à taper : <code>' + esc(it.answer) + '</code></span></div><p><b>Correction</b><br>' + md(it.explain || '') + '</p></div>');
+          showFb('<div class="fb ok"><h4>✓ ' + (attempts > 1 ? 'Correct (au ' + attempts + 'e essai)' : 'Correct !') + '</h4>' + (r.texUser ? '<div>Ta réponse : ' + esc(r.texUser) + '</div>' : '') + (r.notes.length ? '<ul>' + r.notes.map((n) => '<li>' + md(n) + '</li>').join('') + '</ul>' : '') + correctionHtml(it, {}) + '</div>' + contBtn());
+        } else wrongBox(r, inp, attempts, () => correctionHtml(it, { answerHtml: '<b>Réponse attendue :</b> ' + esc(expTex) + (r.expVal ? ' <span class="muted">(≈ ' + esc(r.expVal) + ')</span>' : '') + ' <span class="small muted">— à taper : <code>' + esc(it.answer) + '</code></span>', withHint: true }));
       };
     } else {
       $('#flipB').onclick = $('#flashC').onclick = () => {
@@ -484,12 +487,13 @@
     }
     function wrongBox(r, inp, attempts, solutionHtml) {
       const fb = $('#fb');
-      showFb('<div class="fb ko"><h4>✗ Pas tout à fait</h4>' + (r.texUser ? '<div>Ta réponse : ' + esc(r.texUser) + '</div>' : '') + '<ul>' + r.msgs.map((m) => '<li>' + md(m) + '</li>').join('') + '</ul>' + (r.mine ? '<div class="mine">' + (Array.isArray(r.mine) ? '<b>Ce que fait ta commande :</b> ' + r.mine.map(md).join(' ; ') : '<b>Vérification :</b> ' + esc(r.mine)) + '</div>' : '') + '<div class="row" style="margin-top:12px"><button class="btn sm" id="retryB">Réessayer</button><button class="btn sm ghost" id="showB">Voir la réponse</button></div><div id="solBox"></div></div>');
+      showFb('<div class="fb ko"><h4>✗ Pas tout à fait</h4>' + (r.texUser ? '<div>Ta réponse : ' + esc(r.texUser) + (r.userVal ? ' <span class="muted">(≈ ' + esc(r.userVal) + ')</span>' : '') + '</div>' : '') + '<div class="whybox"><b>Où est l\'erreur ?</b><ul>' + r.msgs.map((m) => '<li>' + md(m) + '</li>').join('') + '</ul>' + (r.mine ? '<div class="mine">' + (Array.isArray(r.mine) ? '<b>Ce que fait ta commande :</b> ' + r.mine.map(md).join(' ; ') : '<b>Vérification :</b> ' + esc(r.mine)) + '</div>' : '') + '</div>' + (it.hint && !it.steps ? '' : '') + '<div class="row" style="margin-top:12px"><button class="btn sm" id="retryB">Réessayer</button><button class="btn sm ghost" id="showB">Voir la correction détaillée</button></div><div id="solBox"></div></div>');
       $('#retryB').onclick = () => { fb.innerHTML = ''; inp.focus(); inp.select(); };
       $('#showB').onclick = () => {
         inp.disabled = true; $('#ansF button').disabled = true;
         const sb = $('#solBox'); sb.innerHTML = solutionHtml() + contBtn();
         if (math) mathify(sb);
+        bindSheets(sb);
         $('#retryB').remove(); $('#showB').remove();
         const b = $('#contB'); if (b) { b.onclick = next; setTimeout(() => b.focus(), 30); }
       };
@@ -503,11 +507,63 @@
     let h = '<div class="fb ' + (ok ? 'ok' : 'ko') + '"><h4>' + (ok ? '✓ Bonne réponse' : '✗ Mauvaise réponse') + '</h4>';
     if (!ok) {
       const why = it.why && (it.why[o] || it.why[String(o)]);
-      h += '<div><b>Pourquoi « ' + md(it.choices[o]) + ' » est faux :</b> ' + (why ? md(why) : 'ce n\'est pas ce qui est décrit dans le cours.') + '</div>';
-      h += '<div style="margin-top:6px"><b>Bonne réponse :</b> ' + md(it.choices[it.answer]) + '</div>';
+      h += '<div class="whybox"><b>Pourquoi « ' + md(it.choices[o]) + ' » est faux</b><div>' + (why ? md(why) : 'Ce n\'est pas ce que dit le cours.') + '</div></div>';
+      h += '<div style="margin-top:8px"><b>Bonne réponse :</b> ' + md(it.choices[it.answer]) + '</div>';
     }
-    h += '<div class="exp">' + md(it.explain || '') + '</div></div>';
+    h += correctionHtml(it, { showAnswer: false }) + '</div>';
     return h;
+  }
+  // Correction détaillée : résumé, méthode, étapes, règle, piège, liens vers la fiche
+  function correctionHtml(it, o) {
+    o = o || {};
+    let h = '<div class="corr">';
+    if (o.answerHtml) h += '<div class="corr-ans">' + o.answerHtml + '</div>';
+    if (it.explain && !(it.steps && it.steps.length && o.compact)) h += '<div class="corr-sum">' + md(it.explain) + '</div>';
+    if (it.hint && (it.steps || o.withHint)) h += '<div class="corr-blk"><div class="corr-t">Méthode</div><div>' + md(it.hint) + '</div></div>';
+    if (it.steps && it.steps.length) h += '<div class="corr-blk"><div class="corr-t">Correction pas à pas</div><ol class="steps">' + it.steps.map((x) => '<li>' + md(x) + '</li>').join('') + '</ol></div>';
+    if (it.rule) h += '<div class="callout key"><b>À retenir</b> ' + md(it.rule) + '</div>';
+    if (it.pitfall) h += '<div class="callout warn"><b>Piège classique</b> ' + md(it.pitfall) + '</div>';
+    return h + ficheLinks(it) + '</div>';
+  }
+  function ficheLinks(it) {
+    const sec = secOf(it);
+    const c = it.chapter ? chOf(it.chapter) : null;
+    if (!c || !(sec || c.formulas.length)) return '';
+    return '<div class="corr-links">' + (sec ? '<button class="btn sm ghost" data-fiche="' + c.id + '|' + sec.id + '">' + icon('book') + ' Revoir la fiche « ' + esc(sec.title) + ' »</button>' : '') + (c.formulas.length ? '<button class="btn sm ghost" data-forms="' + c.id + '">' + icon('sigma') + ' Formules du chapitre</button>' : '') + '</div>';
+  }
+  // Fiche la plus pertinente : champ sec, sinon recherche par mots-clés
+  function secOf(it) {
+    const c = it.chapter ? chOf(it.chapter) : null;
+    if (!c || !c.sections.length) return null;
+    if (it.sec) { const x = c.sections.find((s) => s.id === it.sec); if (x) return x; }
+    const words = (t) => (String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\\[a-z]+/g, ' ').match(/[a-z]{4,}/g) || []);
+    const STOP = new Set(['dans', 'pour', 'avec', 'donc', 'cette', 'est', 'sont', 'une', 'des', 'les', 'que', 'qui', 'quel', 'quelle', 'vaut', 'valeur', 'calcule', 'donne', 'exacte', 'reponse']);
+    const q = words([it.topic, it.q, it.prompt, it.explain, it.hint, it.rule].join(' ')).filter((w) => !STOP.has(w));
+    let best = null, bs = 0;
+    for (const s of c.sections) {
+      const t = words(s.title + ' ' + s.title + ' ' + s.html.replace(/<[^>]+>/g, ' '));
+      const set = new Set(t);
+      const sc = q.reduce((a, w) => a + (set.has(w) ? 1 : 0), 0) + words(s.title).filter((w) => q.includes(w)).length * 3;
+      if (sc > bs) { bs = sc; best = s; }
+    }
+    return bs >= 2 ? best : null;
+  }
+  // Fiche ou formulaire dans un panneau, sans quitter la session
+  function openSheet(title, html, isMath) {
+    const ov = document.createElement('div');
+    ov.className = 'sheet-ov';
+    ov.innerHTML = '<div class="sheet" role="dialog" aria-modal="true"><div class="sheet-h"><b>' + esc(title) + '</b><button class="btn sm ghost" data-close>Fermer ✕</button></div><div class="sheet-b fiche' + (isMath ? ' math' : '') + '">' + html + '</div></div>';
+    document.body.append(ov);
+    const b = ov.querySelector('.sheet-b');
+    if (isMath) mathify(b); else decorateCode(b);
+    const close = () => { ov.remove(); document.removeEventListener('keydown', esck, true); };
+    const esck = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+    document.addEventListener('keydown', esck, true);
+    ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-close]')) close(); });
+  }
+  function bindSheets(root) {
+    $$('[data-fiche]', root).forEach((b) => (b.onclick = () => { const [cid, sid] = b.dataset.fiche.split('|'); const c = chOf(cid); const s = c.sections.find((x) => x.id === sid); openSheet(c.title + ' — ' + s.title, s.html, c.subject === 'maths'); }));
+    $$('[data-forms]', root).forEach((b) => (b.onclick = () => { const c = chOf(b.dataset.forms); openSheet('Formules — ' + c.title, c.formulas.map((x) => formulaCard(x)).join(''), true); }));
   }
   function renderSummary() {
     if (cleanup) { cleanup(); cleanup = null; }
@@ -529,13 +585,18 @@
         else if (k === 'exo') h += '<div class="small">Ta commande : <code>' + esc(r.answer) + '</code>' + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : <code>' + esc(it.answers[0]) + '</code>') + '</div>';
         else if (k === 'mexo') h += '<div class="small">Ta réponse : ' + (r.res && r.res.texUser ? esc(r.res.texUser) : '<code>' + esc(r.answer) + '</code>') + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : ' + (r.res && r.res.texExpected ? esc(r.res.texExpected) : '<code>' + esc(it.answer) + '</code>')) + '</div>';
         else h += '<div class="small">Ta réponse : <code>' + esc(r.answer) + '</code>' + (r.ok ? ' ✓' : ' — attendu : <code>' + esc(it.accept[0]) + '</code>') + '</div>';
-        if (!r.ok) h += '<div class="small muted" style="margin-top:4px">' + md(it.explain || '') + '</div>';
+        if (!r.ok || S.exam) {
+          const c = it.chapter ? chOf(it.chapter) : null;
+          const topic = it.topic || (it.gen && APP.generators[it.gen] ? APP.generators[it.gen].label : '');
+          h += '<details class="sumcorr"><summary>Correction détaillée' + (c ? ' <span class="muted">— ' + esc(c.title) + (topic ? ' › ' + esc(topic) : '') + '</span>' : '') + '</summary>' + correctionHtml(it, {}) + '</details>';
+        }
         h += '</div>';
       }
     }
     h += '</div></div>';
     main.innerHTML = h;
     if (S.subject === 'maths') mathify(main);
+    bindSheets(main);
     if ($('#redoB')) $('#redoB').onclick = () => startSession({ title: 'Mes erreurs', items: U.shuffle(wrong.map((r) => (r.it.kind === 'gen' ? APP.genQuestion(r.it.gen) : r.it))), back: S.back });
     $('#againB').onclick = () => {
       if (S.exam) return startExam();
