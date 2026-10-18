@@ -185,6 +185,77 @@ Sa valeur moyenne $\frac{2}{\pi}$ est la tension continue obtenue après filtrag
 <div class="callout key"><b>À retenir</b> Créneau : $\frac{4}{\pi}\sum \frac{\sin((2k+1)t)}{2k+1}$ ; dent de scie : $2\sum \frac{(-1)^{n+1}\sin(nt)}{n}$ ; triangle : $\frac{\pi}{2} - \frac{4}{\pi}\sum \frac{\cos((2k+1)t)}{(2k+1)^2}$.</div>`
     },
     {
+      id: 'm10-s-methode-td',
+      title: 'Méthode du TD Fourier : les 3 étapes et les formules à connaître',
+      html: String.raw`
+<p>Tous les exercices du TD suivent le même plan : <b>(1) période + convergence</b>, <b>(2) coefficients</b>, <b>(3) sommes numériques</b>. Voici tout ce qu'il faut savoir par cœur, dans l'ordre où on s'en sert. Ici les fonctions sont $2\pi$-périodiques : $T = 2\pi$ et $\omega = 1$.</p>
+
+<h3>Étape 1 — Période et convergence (théorème de Dirichlet)</h3>
+<p><b>Théorème</b> : si $f$ est $2\pi$-périodique et <b>$C^1$ par morceaux</b>, sa série de Fourier converge en tout point $x$ et
+$$S(x) = \frac{f(x^+) + f(x^-)}{2}.$$
+Si $f$ est continue en $x$ : $S(x) = f(x)$. Si $f$ est <b>continue sur $\mathbb{R}$</b> et $C^1$ par morceaux, la convergence est même <b>normale</b> (donc uniforme).</p>
+<p><b>Méthode</b> :</p>
+<ol>
+<li>Trace $f$ sur 2 ou 3 périodes (recopie le motif de longueur $2\pi$).</li>
+<li>Regarde les <b>raccords</b> entre deux périodes ($x = \pm\pi$, ou $x = 0$ et $2\pi$) : compare la limite à gauche et la limite à droite. Par périodicité, $f(\pi^+) = f(-\pi^+)$.</li>
+<li>Vérifie « $C^1$ par morceaux » : sur chaque morceau, $f$ est une formule usuelle dérivable ($\pi - |x|$, $\mathrm{e}^x$, $(x - \pi)^2$, constante…).</li>
+<li>Conclus point par point : $S(x) = f(x)$ là où $f$ est continue, $S(x) = $ moyenne des deux limites aux sauts.</li>
+</ol>
+<div class="callout info"><b>Rédaction type</b> « $f$ est $2\pi$-périodique et $C^1$ par morceaux. D'après le théorème de Dirichlet, sa série de Fourier converge en tout $x$ vers $\frac{1}{2}\big(f(x^+) + f(x^-)\big)$. $f$ est continue sur … donc $S(x) = f(x)$ ; en $x = \pi + 2k\pi$, $S = \frac{1}{2}\big(f(\pi^-) + f(\pi^+)\big) = \dots$ »</div>
+
+<h3>Étape 2 — Les coefficients</h3>
+<p><b>Forme réelle</b> ($a_0$ = valeur moyenne, convention de l'appli) :
+$$f(x) \sim a_0 + \sum_{n=1}^{+\infty}\big(a_n\cos(nx) + b_n\sin(nx)\big)$$
+$$a_0 = \frac{1}{2\pi}\int_{-\pi}^{\pi} f(x)\,\mathrm{d}x,\qquad a_n = \frac{1}{\pi}\int_{-\pi}^{\pi} f(x)\cos(nx)\,\mathrm{d}x,\qquad b_n = \frac{1}{\pi}\int_{-\pi}^{\pi} f(x)\sin(nx)\,\mathrm{d}x.$$
+On peut intégrer sur <b>n'importe quel intervalle de longueur $2\pi$</b> : prends celui où $f$ a une seule formule ($]-\pi, \pi]$ ou $[0, 2\pi[$).</p>
+<div class="callout warn"><b>Convention « $\frac{a_0}{2}$ »</b> Beaucoup de profs de maths écrivent $f \sim \frac{a_0}{2} + \sum(\dots)$ avec $a_0 = \frac{1}{\pi}\int_{-\pi}^{\pi} f$ (même formule que $a_n$ avec $n = 0$). C'est la même série : seul le nom change. Regarde ton cours et garde la même convention partout (y compris dans Parseval).</div>
+<p><b>Parité</b> (vérifie-la toujours en premier, elle divise le travail par deux) :</p>
+<table>
+<tr><th>$f$</th><th>coefficients nuls</th><th>à calculer</th></tr>
+<tr><td>paire ($f(-x) = f(x)$)</td><td>$b_n = 0$</td><td>$a_0 = \frac{1}{\pi}\int_0^{\pi} f$, $a_n = \frac{2}{\pi}\int_0^{\pi} f(x)\cos(nx)\,\mathrm{d}x$</td></tr>
+<tr><td>impaire ($f(-x) = -f(x)$)</td><td>$a_0 = a_n = 0$</td><td>$b_n = \frac{2}{\pi}\int_0^{\pi} f(x)\sin(nx)\,\mathrm{d}x$</td></tr>
+</table>
+<p><b>Forme complexe</b> (souvent plus rapide pour $\mathrm{e}^x$) :
+$$c_n = \frac{1}{2\pi}\int_{-\pi}^{\pi} f(x)\,\mathrm{e}^{-\mathrm{i}nx}\,\mathrm{d}x,\qquad f(x) \sim \sum_{n=-\infty}^{+\infty} c_n\,\mathrm{e}^{\mathrm{i}nx}.$$
+Passage réel ↔ complexe :
+$$c_0 = a_0,\quad c_n = \frac{a_n - \mathrm{i}\,b_n}{2},\quad c_{-n} = \frac{a_n + \mathrm{i}\,b_n}{2}\qquad\Longleftrightarrow\qquad a_n = c_n + c_{-n},\quad b_n = \mathrm{i}\,(c_n - c_{-n}).$$
+Si $f$ est réelle : $c_{-n} = \overline{c_n}$, donc $a_n = 2\,\mathrm{Re}(c_n)$ et $b_n = -2\,\mathrm{Im}(c_n)$.</p>
+
+<h3>Boîte à outils de calcul</h3>
+<ul>
+<li>$\cos(n\pi) = (-1)^n$, $\sin(n\pi) = 0$, $\mathrm{e}^{\pm\mathrm{i}n\pi} = (-1)^n$, $\cos(2n\pi) = 1$.</li>
+<li>$1 - (-1)^n = 0$ si $n$ est pair, $2$ si $n$ est impair : seuls les $n = 2k + 1$ restent.</li>
+<li>$\sin\left(\frac{(2k+1)\pi}{2}\right) = (-1)^k$ et $\cos\left(\frac{(2k+1)\pi}{2}\right) = 0$.</li>
+<li>Intégration par parties : $\displaystyle\int_a^b u\,v' = \big[u\,v\big]_a^b - \int_a^b u'\,v$ (prends $u$ = le polynôme, $v'$ = le cos ou le sin).</li>
+<li>$\displaystyle\int \cos(nx)\,\mathrm{d}x = \frac{\sin(nx)}{n}$, $\displaystyle\int \sin(nx)\,\mathrm{d}x = -\frac{\cos(nx)}{n}$.</li>
+<li>$\displaystyle\int_0^{\pi} x\cos(nx)\,\mathrm{d}x = \frac{(-1)^n - 1}{n^2}$ et $\displaystyle\int_0^{\pi} x\sin(nx)\,\mathrm{d}x = \frac{\pi\,(-1)^{n+1}}{n}$ (une IPP).</li>
+<li>$\displaystyle\int_0^{\pi} x^2\cos(nx)\,\mathrm{d}x = \frac{2\pi\,(-1)^n}{n^2}$ (deux IPP).</li>
+<li>$\displaystyle\int_{-\pi}^{\pi} \mathrm{e}^{(a - \mathrm{i}n)x}\,\mathrm{d}x = \left[\frac{\mathrm{e}^{(a - \mathrm{i}n)x}}{a - \mathrm{i}n}\right]_{-\pi}^{\pi} = \frac{(-1)^n\left(\mathrm{e}^{a\pi} - \mathrm{e}^{-a\pi}\right)}{a - \mathrm{i}n} = \frac{2\,(-1)^n\sinh(a\pi)}{a - \mathrm{i}n}$.</li>
+<li>Diviser par un complexe : $\dfrac{1}{1 - \mathrm{i}n} = \dfrac{1 + \mathrm{i}n}{1 + n^2}$ (on multiplie par le conjugué).</li>
+<li>$\sinh\pi = \dfrac{\mathrm{e}^{\pi} - \mathrm{e}^{-\pi}}{2}$, $\cosh\pi = \dfrac{\mathrm{e}^{\pi} + \mathrm{e}^{-\pi}}{2}$, $\coth\pi = \dfrac{\cosh\pi}{\sinh\pi}$.</li>
+<li>Fonction de $x - \pi$ sur $[0, 2\pi[$ : on pose $t = x - \pi$, et $\cos\big(n(t + \pi)\big) = (-1)^n\cos(nt)$.</li>
+</ul>
+
+<h3>Étape 3 — Les sommes numériques</h3>
+<p><b>Égalité de Parseval</b> (il suffit que $f$ soit continue par morceaux) :
+$$\frac{1}{2\pi}\int_{-\pi}^{\pi} f(x)^2\,\mathrm{d}x = a_0^2 + \frac{1}{2}\sum_{n=1}^{+\infty}\left(a_n^2 + b_n^2\right) = \sum_{n=-\infty}^{+\infty} |c_n|^2.$$
+(Convention $\frac{a_0}{2}$ : $\frac{1}{\pi}\int_{-\pi}^{\pi} f^2 = \frac{a_0^2}{2} + \sum_{n\ge1}(a_n^2 + b_n^2)$.)</p>
+<p><b>Méthode</b> :</p>
+<ol>
+<li>Regarde la somme demandée : des <b>carrés</b> au dénominateur qui sont les carrés de tes coefficients → <b>Parseval</b> ; sinon → <b>Dirichlet en un point bien choisi</b>.</li>
+<li>Choix du point : $x = 0$ (alors $\cos(0) = 1$, on obtient $\sum a_n$) ; $x = \pi$ (alors $\cos(n\pi) = (-1)^n$, on obtient $\sum (-1)^n a_n$) ; $x = \frac{\pi}{2}$ avec des sinus impairs ($\sin\frac{(2k+1)\pi}{2} = (-1)^k$).</li>
+<li>Écris $S(x_0)$ = la valeur donnée par Dirichlet (<b>la moyenne</b> si $x_0$ est un point de saut !), remplace les coefficients, puis isole la somme.</li>
+</ol>
+<p><b>Pairs / impairs</b> : $\displaystyle\sum_{n\ge1}\frac{1}{n^2} = \sum_{k\ge1}\frac{1}{(2k)^2} + \sum_{k\ge0}\frac{1}{(2k+1)^2} = \frac{1}{4}\sum_{n\ge1}\frac{1}{n^2} + \sum_{k\ge0}\frac{1}{(2k+1)^2}$, donc $\displaystyle\sum_{n\ge1}\frac{1}{n^2} = \frac{4}{3}\sum_{k\ge0}\frac{1}{(2k+1)^2}$.</p>
+<p><b>Résultats classiques</b> (pour vérifier tes calculs) :
+$$\sum_{n=1}^{+\infty}\frac{1}{n^2} = \frac{\pi^2}{6},\qquad \sum_{n=1}^{+\infty}\frac{(-1)^{n+1}}{n^2} = \frac{\pi^2}{12},\qquad \sum_{k=0}^{+\infty}\frac{1}{(2k+1)^2} = \frac{\pi^2}{8},\qquad \sum_{k=0}^{+\infty}\frac{(-1)^k}{2k+1} = \frac{\pi}{4}.$$</p>
+
+<h3>Bonus — Équation différentielle par série de Fourier</h3>
+<p>Si $y = \sum c_n(y)\,\mathrm{e}^{\mathrm{i}nx}$ est $2\pi$-périodique, on dérive terme à terme : $c_n(y') = \mathrm{i}n\,c_n(y)$ et $c_n(y'') = -n^2\,c_n(y)$. Pour $y'' + \alpha y' + \beta y = f$, on identifie coefficient par coefficient :
+$$\left(-n^2 + \mathrm{i}\alpha n + \beta\right)c_n(y) = c_n(f)\quad\Longrightarrow\quad c_n(y) = \frac{c_n(f)}{-n^2 + \mathrm{i}\alpha n + \beta}.$$</p>
+<div class="callout key"><b>Le minimum par cœur</b> Dirichlet : $S(x) = \frac{f(x^+) + f(x^-)}{2}$ · $a_n = \frac{1}{\pi}\int_{-\pi}^{\pi} f\cos(nx)$, $b_n = \frac{1}{\pi}\int_{-\pi}^{\pi} f\sin(nx)$, $c_n = \frac{1}{2\pi}\int_{-\pi}^{\pi} f\,\mathrm{e}^{-\mathrm{i}nx}$ · paire → cos seuls, impaire → sin seuls · $\cos(n\pi) = (-1)^n$ · Parseval · $\sum\frac{1}{n^2} = \frac{\pi^2}{6}$.</div>`
+    },
+    {
       id: 'm10-s-laplace-def',
       title: 'Transformée de Laplace : définition et table',
       html: String.raw`
@@ -360,6 +431,18 @@ $$S(p) = \frac{KE_0}{p(1 + \tau p)} = KE_0\left(\frac{1}{p} - \frac{1}{p + 1/\ta
     { id: 'm10-fo-amplitude', name: 'Amplitude de l\'harmonique n', tex: String.raw`A_n = \sqrt{a_n^2 + b_n^2} = 2|c_n|`, note: String.raw`$a_n\cos n\omega t + b_n \sin n\omega t = A_n\cos(n\omega t + \varphi_n)$, $\varphi_n = \arg c_n$` },
     { id: 'm10-fo-dirichlet', name: 'Théorème de Dirichlet', tex: String.raw`S(t) = \frac{f(t^+) + f(t^-)}{2}`, note: String.raw`$f$ périodique et $C^1$ par morceaux ; $S(t) = f(t)$ si $f$ continue en $t$` },
     { id: 'm10-fo-parseval', name: 'Égalité de Parseval', tex: String.raw`\frac{1}{T}\int_0^T f(t)^2\,\mathrm{d}t = a_0^2 + \frac12\sum_{n=1}^{+\infty}\left(a_n^2 + b_n^2\right) = \sum_{n=-\infty}^{+\infty}|c_n|^2` },
+    { id: 'm10-fo-td-parite', name: 'Parité (fonction 2π-périodique)', tex: String.raw`\text{paire : } b_n = 0,\ a_n = \frac{2}{\pi}\int_0^{\pi} f(x)\cos(nx)\,\mathrm{d}x \qquad \text{impaire : } a_n = 0,\ b_n = \frac{2}{\pi}\int_0^{\pi} f(x)\sin(nx)\,\mathrm{d}x`, note: String.raw`et pour $f$ paire : $a_0 = \frac{1}{\pi}\int_0^{\pi} f$` },
+    { id: 'm10-fo-td-cn', name: 'Coefficient cₙ (2π-périodique)', tex: String.raw`c_n = \frac{1}{2\pi}\int_{-\pi}^{\pi} f(x)\,\mathrm{e}^{-\mathrm{i}nx}\,\mathrm{d}x`, note: String.raw`$a_n = c_n + c_{-n}$, $b_n = \mathrm{i}(c_n - c_{-n})$` },
+    { id: 'm10-fo-td-parseval', name: 'Parseval (2π-périodique)', tex: String.raw`\frac{1}{2\pi}\int_{-\pi}^{\pi} f(x)^2\,\mathrm{d}x = a_0^2 + \frac12\sum_{n=1}^{+\infty}\left(a_n^2 + b_n^2\right) = \sum_{n\in\mathbb{Z}}|c_n|^2`, note: String.raw`convention $\frac{a_0}{2}$ : $\frac{1}{\pi}\int_{-\pi}^{\pi} f^2 = \frac{a_0^2}{2} + \sum(a_n^2 + b_n^2)$` },
+    { id: 'm10-fo-td-xcos', name: 'Intégrale de x cos(nx)', tex: String.raw`\int_0^{\pi} x\cos(nx)\,\mathrm{d}x = \frac{(-1)^n - 1}{n^2}`, note: 'une IPP avec $u = x$, $v\' = \\cos(nx)$' },
+    { id: 'm10-fo-td-xsin', name: 'Intégrale de x sin(nx)', tex: String.raw`\int_0^{\pi} x\sin(nx)\,\mathrm{d}x = \frac{\pi\,(-1)^{n+1}}{n}`, note: 'une IPP avec $u = x$, $v\' = \\sin(nx)$' },
+    { id: 'm10-fo-td-x2cos', name: 'Intégrale de x² cos(nx)', tex: String.raw`\int_0^{\pi} x^2\cos(nx)\,\mathrm{d}x = \frac{2\pi\,(-1)^n}{n^2}`, note: 'deux IPP successives' },
+    { id: 'm10-fo-td-exp', name: 'Intégrale de e^((a − in)x)', tex: String.raw`\int_{-\pi}^{\pi} \mathrm{e}^{(a - \mathrm{i}n)x}\,\mathrm{d}x = \frac{2\,(-1)^n\sinh(a\pi)}{a - \mathrm{i}n}`, note: String.raw`car $\mathrm{e}^{\pm\mathrm{i}n\pi} = (-1)^n$ ; puis $\frac{1}{1 - \mathrm{i}n} = \frac{1 + \mathrm{i}n}{1 + n^2}$` },
+    { id: 'm10-fo-td-impairs', name: 'Seuls les n impairs restent', tex: String.raw`1 - (-1)^n = \begin{cases} 0 & n \text{ pair} \\ 2 & n = 2k+1 \end{cases}\qquad \sin\frac{(2k+1)\pi}{2} = (-1)^k` },
+    { id: 'm10-fo-td-points', name: 'Choisir le point pour une somme', tex: String.raw`x = 0 : \cos(0) = 1 \qquad x = \pi : \cos(n\pi) = (-1)^n \qquad x = \tfrac{\pi}{2} : \sin\tfrac{(2k+1)\pi}{2} = (-1)^k`, note: 'en un point de saut, la série vaut la moyenne des deux limites (Dirichlet)' },
+    { id: 'm10-fo-td-pairsimpairs', name: 'Somme sur les impairs', tex: String.raw`\sum_{n\ge1}\frac{1}{n^2} = \frac{4}{3}\sum_{k\ge0}\frac{1}{(2k+1)^2}`, note: String.raw`car les termes pairs valent $\frac{1}{4}\sum\frac{1}{n^2}$` },
+    { id: 'm10-fo-td-sommes', name: 'Sommes classiques', tex: String.raw`\sum_{n\ge1}\frac{1}{n^2} = \frac{\pi^2}{6},\quad \sum_{n\ge1}\frac{(-1)^{n+1}}{n^2} = \frac{\pi^2}{12},\quad \sum_{k\ge0}\frac{1}{(2k+1)^2} = \frac{\pi^2}{8},\quad \sum_{k\ge0}\frac{(-1)^k}{2k+1} = \frac{\pi}{4}` },
+    { id: 'm10-fo-td-edo', name: 'Dériver une série de Fourier', tex: String.raw`c_n(y') = \mathrm{i}n\,c_n(y),\qquad c_n(y'') = -n^2\,c_n(y)`, note: String.raw`pour une EDO $y'' + \alpha y' + \beta y = f$ : $c_n(y) = \frac{c_n(f)}{-n^2 + \mathrm{i}\alpha n + \beta}$` },
     { id: 'm10-fo-creneau', name: 'Créneau impair ±E', tex: String.raw`f(t) = \frac{4E}{\pi}\sum_{k=0}^{+\infty}\frac{\sin\big((2k+1)\omega t\big)}{2k+1}`, note: String.raw`Parseval donne $\sum_{k\ge0} \frac{1}{(2k+1)^2} = \frac{\pi^2}{8}$` },
     { id: 'm10-fo-dent', name: 'Dent de scie t sur ]−π, π[', tex: String.raw`t = 2\sum_{n=1}^{+\infty}\frac{(-1)^{n+1}}{n}\sin(nt)`, note: String.raw`Parseval donne $\sum \frac{1}{n^2} = \frac{\pi^2}{6}$` },
     { id: 'm10-fo-triangle', name: 'Triangle |t| sur [−π, π]', tex: String.raw`|t| = \frac{\pi}{2} - \frac{4}{\pi}\sum_{k=0}^{+\infty}\frac{\cos\big((2k+1)t\big)}{(2k+1)^2}` },
