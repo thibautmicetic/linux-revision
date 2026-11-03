@@ -541,3 +541,5 @@ table.verbs td, table.verbs th { white-space: nowrap; }
 .dq-r.ko { background: var(--ko-soft); }
 .dq-r > div { margin-top: 4px; }
 .sumcorr .dlg { margin-top: 8px; }
+.tier-h { grid-column: 1 / -1; font-size: .78rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--subj, var(--accent)); margin: 10px 0 -2px; }
+.tier-h:first-child { margin-top: 0; }

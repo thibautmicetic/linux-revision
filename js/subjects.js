@@ -27,7 +27,7 @@
   });
   APP.registerSubject({
     id: 'anglais', order: 3,
-    title: 'Anglais', short: 'Anglais', kicker: 'Débutant · vocabulaire, verbes, conjugaison',
+    title: 'Anglais', short: 'Anglais', kicker: 'Niveaux 1 et 2 · vocabulaire, verbes, conjugaison',
     desc: 'Le vocabulaire du quotidien, les verbes irréguliers et la conjugaison, avec des exercices écrits, à l\'oral (micro) et à l\'écoute.',
     color: '#0d9488', badge: 'EN',
     memo: { label: 'Vocabulaire', title: 'Vocabulaire', placeholder: 'Rechercher : maison, eat, family…' },

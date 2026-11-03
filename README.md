@@ -17,7 +17,8 @@ Application de révision **100 % hors ligne** (PWA), organisée en **matières**
 - **Labo** : tracer des fonctions, voir leur dérivée, cercle trigonométrique.
 
 ## Anglais (grand débutant)
-12 chapitres progressifs : premiers pas et to be, nombres/heure/dates, famille, maison, nourriture, présent simple, présent continu, prétérit, **verbes irréguliers** (95 verbes, 3 formes), futur et voyages, adjectifs et comparatifs, converser au quotidien.
+**Niveau 1** (chapitres 1 à 12) : premiers pas et to be, nombres/heure/dates, famille, maison, nourriture, présent simple, présent continu, prétérit, **verbes irréguliers** (95 verbes, 3 formes), futur et voyages, adjectifs et comparatifs, converser au quotidien.
+**Niveau 2** (chapitres 13 à 20, `tier: 2`) : present perfect, raconter (passé continu, used to), demander / proposer (could, would, shall), chez le médecin, au travail (for / since), au téléphone (épeler, rendez-vous), services et réclamations (passif), conditionnels et relatifs.
 - **Parcours du jour** (page d'ouverture quand l'anglais est la dernière matière utilisée) : environ 10 minutes guidées — révision des éléments dus, leçon (une fiche + 5 mots ou verbes + 2 phrases nouveaux), puis écoute, écriture et oral sur ces nouveautés. Le plan du jour est enregistré dans la progression ; le programme avance chapitre par chapitre.
 - **Fiches à écouter** : chaque mot ou phrase en anglais se lit à voix haute d'un clic (voix du téléphone, hors ligne).
 - **Dialogues à écouter** (3 par chapitre, fichiers `js/data/anglais/dialogues-*.js`) : une voix par personnage, texte caché pendant l'écoute, questions de compréhension en français expliquées, puis texte et traduction avec les répliques utiles surlignées. Un dialogue est glissé dans l'étape « Écouter » du parcours du jour.

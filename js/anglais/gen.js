@@ -281,6 +281,160 @@
     }
   };
 
+  /* ================= NIVEAU 2 ================= */
+  const ppOf = (v) => { const vi = E.verbIndex[v]; return vi ? vi.pp.split('/') : [E.ed(v)]; };
+  const pretOf = (v) => { const vi = E.verbIndex[v]; return vi ? vi.pret.split('/') : [E.ed(v)]; };
+
+  /* ---------- present perfect ---------- */
+  const PERF = [['lose', 'my keys', 'perdre'], ['finish', 'the report', 'finir'], ['see', 'this film', 'voir'], ['eat', 'sushi', 'manger'], ['visit', 'Scotland', 'visiter'], ['buy', 'a new car', 'acheter'], ['break', 'my glasses', 'casser'], ['forget', 'the password', 'oublier'], ['write', 'three emails', 'écrire'], ['read', 'this book', 'lire'], ['meet', 'her new boyfriend', 'rencontrer'], ['clean', 'the kitchen', 'nettoyer'], ['make', 'a cake', 'faire'], ['take', 'the medicine', 'prendre'], ['find', 'a new job', 'trouver'], ['drink', 'all the milk', 'boire'], ['do', 'the shopping', 'faire'], ['send', 'the letter', 'envoyer'], ['call', 'the doctor', 'appeler'], ['fly', 'to New York', 'prendre l\'avion'], ['tidy', 'the garage', 'ranger'], ['cook', 'dinner', 'préparer'], ['pay', 'the bill', 'payer'], ['sell', 'the old house', 'vendre']];
+  const ADV = [['', ''], ['just', 'vient de'], ['already', 'déjà']];
+  G.perfect = {
+    label: 'Present perfect (have + participe)', chapter: 'en13',
+    make() {
+      const [s, t3, , fr] = pick(SUBJ), [v, c, vfr] = pick(PERF), aux = t3 ? 'has' : 'have', pps = ppOf(v), pp = pps[0], form = Math.random();
+      const vi = E.verbIndex[v], pret = pretOf(v)[0];
+      if (form < 0.6) {
+        const [a, afr] = pick(ADV);
+        const gap = aux + ' ' + (a ? a + ' ' : '') + pp, full = s + ' ' + gap + ' ' + c;
+        const mist = [{ text: (a ? a + ' ' : '') + (pret !== pp ? pret : E.ed(v) === pp ? v : pret), msg: 'Au present perfect, il faut **' + aux + '** + le participe passé : **' + gap + '**.' }, { text: (t3 ? 'have' : 'has') + ' ' + (a ? a + ' ' : '') + pp, msg: (t3 ? 'Avec « ' + s + ' » (he / she / it) : **has**, pas have.' : 'Avec « ' + s + ' » : **have**. « has » est réservé à he, she, it.') }];
+        if (vi && pret !== pp) mist.push({ text: aux + ' ' + (a ? a + ' ' : '') + pret, msg: '« ' + pret + ' » est le **prétérit** (2e colonne). Après have / has, il faut le **participe passé** (3e colonne) : **' + pp + '**.' });
+        if (vi) mist.push({ text: aux + ' ' + (a ? a + ' ' : '') + E.ed(v), msg: '**' + v + '** est irrégulier : son participe passé est **' + pp + '**, pas « ' + E.ed(v) + ' ».' });
+        if (a) mist.push({ text: aux + ' ' + pp + ' ' + a, msg: '**' + a + '** se place entre have / has et le participe : **' + gap + '**.' });
+        return q('perfect', {
+          mode: 'write', topic: 'Present perfect', chapter: 'en13', level: 2, placeholder: 'have / has + participe passé',
+          prompt: 'Complète au present perfect : ' + s + ' ___ (' + (a ? a + ' / ' : '') + v + ') ' + c + '.', answers: pps.map((x) => aux + ' ' + (a ? a + ' ' : '') + x).concat([full]), say: full + '.', mistakes: mist,
+          rule: 'Present perfect : **have / has** + participe passé (3e colonne des verbes irréguliers, -ed pour les réguliers).',
+          explain: '→ ' + full + '. (' + fr + ' ' + (a ? afr + ' ' : '') + '… : to ' + v + ' = ' + vfr + ')',
+          steps: ['Le **present perfect** relie le passé au présent : c\'est fait, et ça compte maintenant.', 'Auxiliaire : « ' + s + ' » → **' + aux + '**' + (t3 ? ' (he / she / it)' : '') + '.', 'Participe passé de **' + v + '** : **' + pp + '**' + (vi ? ' (irrégulier : ' + v + ' · ' + vi.pret.replace('/', ' / ') + ' · ' + vi.pp.replace('/', ' / ') + ')' : ' (régulier : -ed)') + '.', a ? '**' + a + '** (' + afr + ') se place entre l\'auxiliaire et le participe → ' + full + '.' : 'Résultat : ' + full + '.']
+        });
+      }
+      if (form < 0.8) {
+        const gap = aux + 'n\'t ' + pp, full = s + ' ' + gap + ' ' + c + ' yet';
+        return q('perfect', {
+          mode: 'write', topic: 'Present perfect : négation', chapter: 'en13', level: 2, strict: false, placeholder: 'haven\'t / hasn\'t + participe',
+          prompt: 'Complète à la forme négative du present perfect : ' + s + ' ___ (' + v + ') ' + c + ' yet.', answers: pps.map((x) => aux + 'n\'t ' + x).concat([full]), say: full + '.',
+          mistakes: [{ text: (t3 ? 'doesn\'t ' : 'don\'t ') + v, msg: 'Avec **yet** (pas encore), on utilise le present perfect : **' + gap + '** (pas do / does).' }, { text: 'didn\'t ' + v, msg: '« didn\'t » est le prétérit. Avec **yet**, il faut le present perfect : **' + gap + '**.' }, { text: (t3 ? 'haven\'t ' : 'hasn\'t ') + pp, msg: t3 ? 'Avec he / she / it : **hasn\'t**.' : 'Avec « ' + s + ' » : **haven\'t**.' }].concat(vi && pret !== pp ? [{ text: aux + 'n\'t ' + pret, msg: 'Après haven\'t / hasn\'t : le **participe passé** **' + pp + '**, pas le prétérit « ' + pret + ' ».' }] : []),
+          rule: 'Négation : **haven\'t / hasn\'t** + participe passé · **yet** (pas encore) se met à la fin.',
+          explain: '→ ' + full + '. (pas encore)',
+          steps: ['**yet** à la fin d\'une phrase négative = « pas encore » → present perfect.', 'Négation : ' + aux + ' + not → **' + aux + 'n\'t**, puis le participe passé **' + pp + '**.', 'Résultat : ' + full + '.']
+        });
+      }
+      const sl = subjLow(s), qn = cap(aux) + ' ' + sl + ' ever ' + pp + ' ' + c + '?';
+      return q('perfect', {
+        mode: 'write', topic: 'Present perfect : Have you ever…?', chapter: 'en13', level: 3, strict: false, placeholder: 'la question complète',
+        prompt: 'Pose la question avec **ever** (déjà, une fois dans sa vie) : ' + s + ' / ' + v + ' / ' + c + ' ?', answers: pps.map((x) => cap(aux) + ' ' + sl + ' ever ' + x + ' ' + c + '?'), say: qn,
+        mistakes: [{ text: (t3 ? 'Does ' : 'Do ') + sl + ' ever ' + v + ' ' + c, msg: 'Pour une expérience (« déjà… ? »), on utilise le present perfect : **' + qn + '**' }, { text: 'Did ' + sl + ' ever ' + v + ' ' + c, msg: '« Did » est le prétérit (moment précis). Pour une expérience de la vie : **' + qn + '**' }, { text: sl + ' ' + aux + ' ever ' + pp + ' ' + c, msg: 'Dans une question, **' + aux + '** passe devant le sujet : ' + qn }, { text: cap(aux) + ' ' + sl + ' ' + pp + ' ever ' + c, msg: '**ever** se place juste avant le participe : ' + qn }],
+        rule: 'Question : **Have / Has** + sujet + **ever** + participe passé… ? → Réponse : Yes, I have. / No, I haven\'t.',
+        explain: '→ ' + qn + ' (Est-ce que … déjà … ?)',
+        steps: ['On parle d\'une **expérience** (une fois dans sa vie, sans dire quand) → present perfect.', 'Question : l\'auxiliaire **' + aux + '** passe devant le sujet, **ever** juste avant le participe **' + pp + '**.', 'Résultat : ' + qn]
+      });
+    }
+  };
+
+  /* ---------- passé continu ---------- */
+  const PCONT = [['cook', 'dinner'], ['watch', 'TV'], ['sleep', ''], ['read', 'a book'], ['have', 'a shower'], ['drive', 'to work'], ['talk', 'on the phone'], ['wait', 'for the bus'], ['work', 'in the garden'], ['play', 'cards'], ['listen', 'to the radio'], ['eat', 'lunch'], ['write', 'an email'], ['walk', 'the dog'], ['sit', 'in the kitchen'], ['run', 'in the park'], ['swim', 'in the sea'], ['make', 'a cake']];
+  const PCW = [['At eight o\'clock last night,', 0], ['When the phone rang,', 0], ['At midnight,', 0], ['when the lights went out.', 1], ['when I saw the accident.', 1], ['when it started to rain.', 1]];
+  G.pastCont = {
+    label: 'Passé continu (was / were + -ing)', chapter: 'en14',
+    make() {
+      const [s, , be, fr] = pick(SUBJ), [v, c] = pick(PCONT), [w, end] = pick(PCW);
+      const was = be === 'are' ? 'were' : 'was', g = E.ing(v), gap = was + ' ' + g;
+      const tail = (c ? ' ' + c : '');
+      const full = end ? s + ' ' + gap + tail + ' ' + w.replace(/\.$/, '') : w + ' ' + subjLow(s) + ' ' + gap + tail;
+      const mist = [{ text: (was === 'was' ? 'were' : 'was') + ' ' + g, msg: was === 'was' ? 'Avec « ' + s + ' » : **was** (were va avec you, we, they).' : 'Avec « ' + s + ' » : **were** (was va avec I, he, she, it).' }, { text: was + ' ' + v, msg: 'Le passé continu, c\'est was / were + verbe en **-ing** : **' + gap + '**.' }, { text: pretOf(v)[0], msg: 'L\'action était **en cours** à ce moment-là (« en train de ») → passé continu : **' + gap + '**.' }, { text: be + ' ' + g, msg: '« ' + be + ' ' + g + ' » est le présent continu. On parle du passé : **' + gap + '**.' }];
+      if (g !== v + 'ing') mist.push({ text: was + ' ' + v + 'ing', msg: 'Orthographe : ' + ingRule(v, g) + '.' });
+      return q('pastCont', {
+        mode: 'write', topic: 'Passé continu', chapter: 'en14', level: 2, placeholder: 'was / were + -ing',
+        prompt: 'Complète au passé continu : ' + (end ? s + ' ___ (' + v + ')' + tail + ' ' + w : w + ' ' + subjLow(s) + ' ___ (' + v + ')' + tail + '.'), answers: [gap, full], say: full + '.', mistakes: mist,
+        rule: 'Passé continu : **was / were** + verbe en **-ing** = « était en train de » (I / he / she / it **was**, you / we / they **were**).',
+        explain: '→ ' + full + '. (' + fr + ' … était en train de …)',
+        steps: ['Une action **en cours** à un moment du passé (souvent interrompue par une autre) → **passé continu**.', '« ' + s + ' » → **' + was + '** (le passé de ' + be + ').', 'Le verbe prend **-ing** : ' + v + ' → **' + g + '**' + (g !== v + 'ing' ? ' (' + ingRule(v, g) + ')' : '') + '.', 'Résultat : ' + full + '.']
+      });
+    }
+  };
+
+  /* ---------- for / since ---------- */
+  const FS_S = [['I have lived here', 'j\'habite ici'], ['She has worked at the bank', 'elle travaille à la banque'], ['We have known them', 'nous les connaissons'], ['He has been ill', 'il est malade'], ['They have had this car', 'ils ont cette voiture'], ['I haven\'t seen him', 'je ne l\'ai pas vu'], ['My father has played golf', 'mon père joue au golf'], ['We have been married', 'nous sommes mariés']];
+  const FOR_T = ['ten years', 'three months', 'two weeks', 'a long time', 'five days', 'an hour', 'six years', 'ages'];
+  const SINCE_T = ['2015', 'January', 'last summer', 'Monday', 'I was a child', 'nine o\'clock', 'my birthday', 'Christmas'];
+  G.forSince = {
+    label: 'for ou since ?', chapter: 'en17',
+    make() {
+      const [sent, sfr] = pick(FS_S), isFor = Math.random() < 0.5, t = isFor ? pick(FOR_T) : pick(SINCE_T);
+      const choices = ['for', 'since', 'ago'], ans = isFor ? 0 : 1, full = sent + ' ' + choices[ans] + ' ' + t + '.';
+      return q('forSince', {
+        mode: 'choice', topic: 'for / since', chapter: 'en17', level: 2, strict: false,
+        q: 'Complète : ' + sent + ' ___ ' + t + '.', choices, answer: ans, say: full,
+        why: isFor ? { 1: '**since** + un point de départ (2015, Monday…). « ' + t + ' » est une **durée** → for.', 2: '**ago** (il y a) va avec le prétérit : « I came two years ago ». Ici, present perfect + durée → for.' } : { 0: '**for** + une durée (ten years, two weeks…). « ' + t + ' » est un **point de départ** → since.', 2: '**ago** (il y a) va avec le prétérit et une durée. Ici, un point de départ → since.' },
+        rule: 'Depuis : **for** + durée (for ten years) · **since** + point de départ (since 2015).',
+        explain: '→ ' + full + ' (' + sfr + ' depuis ' + (isFor ? 'une durée' : 'un point de départ') + ')',
+        steps: ['En anglais, « depuis » avec le present perfect se dit **for** ou **since**.', isFor ? '« ' + t + ' » est une **durée** (combien de temps ?) → **for**.' : '« ' + t + ' » est un **point de départ** (depuis quand ?) → **since**.', full]
+      });
+    }
+  };
+
+  /* ---------- le passif ---------- */
+  const PASS = [['this bridge', 0, 'build', 'in 1890', 1], ['these cars', 1, 'make', 'in Japan', 0], ['the letters', 1, 'send', 'every morning', 0], ['this house', 0, 'build', 'in 1950', 1], ['English', 0, 'speak', 'all over the world', 0], ['the windows', 1, 'clean', 'every week', 0], ['my car', 0, 'repair', 'yesterday', 1], ['the shop', 0, 'close', 'on Sundays', 0], ['the tickets', 1, 'sell', 'online', 0], ['the film', 0, 'make', 'in 2015', 1], ['these photos', 1, 'take', 'by my grandfather', 1], ['the parcel', 0, 'send', 'last week', 1], ['coffee', 0, 'grow', 'in Brazil', 0], ['the rooms', 1, 'clean', 'this morning', 1], ['dinner', 0, 'serve', 'at seven', 0], ['the museum', 0, 'open', 'in 1902', 1], ['the post', 0, 'deliver', 'at ten', 0], ['the keys', 1, 'find', 'in the garden', 1]];
+  G.passive = {
+    label: 'Le passif (is made, was built)', chapter: 'en19',
+    make() {
+      const [o, pl, v, rest, past] = pick(PASS), pp = ppOf(v)[0], b = past ? (pl ? 'were' : 'was') : (pl ? 'are' : 'is'), gap = b + ' ' + pp, full = cap(o) + ' ' + gap + ' ' + rest;
+      const wrongB = past ? (pl ? 'was' : 'were') : (pl ? 'is' : 'are'), other = past ? (pl ? 'are' : 'is') : (pl ? 'were' : 'was');
+      const mist = [{ text: wrongB + ' ' + pp, msg: '« ' + o + ' » est au ' + (pl ? 'pluriel' : 'singulier') + ' → **' + b + '**.' }, { text: other + ' ' + pp, msg: past ? '« ' + rest + ' » parle du **passé** → was / were : **' + gap + '**.' : 'C\'est vrai en général / d\'habitude (« ' + rest + ' ») → présent : **' + gap + '**.' }, { text: pp, msg: 'Au passif, il faut **be** devant le participe : **' + gap + '**.' }];
+      const vi = E.verbIndex[v];
+      if (vi) { const pret = vi.pret.split('/')[0]; if (pret !== pp) mist.push({ text: b + ' ' + pret, msg: '« ' + pret + ' » est le prétérit. Au passif : be + **participe passé** → **' + pp + '**.' }); mist.push({ text: b + ' ' + E.ed(v), msg: '**' + v + '** est irrégulier : participe passé **' + pp + '**.' }); }
+      return q('passive', {
+        mode: 'write', topic: 'Le passif', chapter: 'en19', level: 2, placeholder: 'be + participe passé',
+        prompt: 'Complète au passif : ' + cap(o) + ' ___ (' + v + ') ' + rest + '.', answers: [gap, full], say: full + '.', mistakes: mist,
+        rule: 'Passif : **be** (is / are, was / were) + **participe passé** · on insiste sur ce qui subit l\'action.',
+        explain: '→ ' + full + '.',
+        steps: ['Au **passif**, le sujet subit l\'action : « ' + o + ' » ne fait rien, on ' + (v === 'build' ? 'la construit' : 'agit sur lui / elle') + '.', 'be au ' + (past ? '**passé**' : '**présent**') + ', ' + (pl ? 'pluriel' : 'singulier') + ' → **' + b + '**.', 'Puis le **participe passé** de ' + v + ' : **' + pp + '**' + (vi ? ' (irrégulier)' : '') + ' → ' + full + '.']
+      });
+    }
+  };
+
+  /* ---------- conditionnels ---------- */
+  // [sujet si, verbe si, suite si, sujet principal, verbe principal, suite principale]
+  const C1 = [['it', 'rain', 'tomorrow', 'we', 'stay', 'at home'], ['you', 'hurry', '', 'you', 'catch', 'the train'], ['she', 'study', 'hard', 'she', 'pass', 'the exam'], ['I', 'have', 'time', 'I', 'call', 'you'], ['we', 'leave', 'now', 'we', 'arrive', 'early'], ['he', 'eat', 'all that cake', 'he', 'be', 'ill'], ['the weather', 'be', 'nice', 'we', 'go', 'to the beach'], ['you', 'need', 'help', 'I', 'help', 'you'], ['I', 'see', 'Tom', 'I', 'tell', 'him'], ['they', 'come', 'on Sunday', 'we', 'have', 'lunch together']];
+  const C2 = [['I', 'have', 'more money', 'I', 'buy', 'a bigger house'], ['I', 'be', 'you', 'I', 'see', 'a doctor'], ['we', 'live', 'by the sea', 'we', 'go', 'swimming every day'], ['she', 'speak', 'English', 'she', 'work', 'in London'], ['he', 'win', 'the lottery', 'he', 'travel', 'around the world'], ['I', 'know', 'the answer', 'I', 'tell', 'you'], ['they', 'have', 'a car', 'they', 'visit', 'us more often'], ['it', 'be', 'sunny', 'we', 'eat', 'in the garden'], ['I', 'have', 'more time', 'I', 'learn', 'the piano']];
+  const t3s = (x) => /^(he|she|it|the weather)$/i.test(x);
+  const presOf = (s, v) => (v === 'be' ? (s === 'I' ? 'am' : t3s(s) ? 'is' : 'are') : t3s(s) ? E.third(v) : v);
+  G.cond1 = {
+    label: 'If + présent → will', chapter: 'en20',
+    make() {
+      const [s1, v1, r1, s2, v2, r2] = pick(C1), p1 = presOf(s1, v1), m = 'will ' + v2;
+      const ifPart = 'If ' + s1 + ' ' + p1 + (r1 ? ' ' + r1 : ''), main = s2 + ' ' + m + ' ' + r2, full = ifPart + ', ' + main + '.';
+      const gapIf = Math.random() < 0.5;
+      const mist = gapIf ? [{ text: 'will ' + v1, msg: 'Après **if**, jamais de will : on met le **présent** → **' + p1 + '**.' }].concat(p1 !== v1 ? [{ text: v1, msg: 'Présent avec « ' + s1 + ' » (he / she / it) : **' + p1 + '**.' }] : []).concat([{ text: pretOf(v1)[0], msg: 'Ici, c\'est une situation **possible** (1er conditionnel) : présent après if → **' + p1 + '**.' }])
+        : [{ text: v2, msg: 'Dans la conséquence, il faut le **futur** : **' + m + '**.' }, { text: 'would ' + v2, msg: '« would » sert pour une situation imaginaire (2e conditionnel). Ici c\'est possible / probable → **' + m + '**.' }, { text: 'will ' + E.third(v2), msg: 'Après will, la base verbale (pas de -s) : **' + m + '**.' }];
+      return q('cond1', {
+        mode: 'write', topic: '1er conditionnel', chapter: 'en20', level: 2, placeholder: gapIf ? 'le verbe après if' : 'will + verbe',
+        prompt: 'Complète (situation possible) : ' + (gapIf ? 'If ' + s1 + ' ___ (' + v1 + ')' + (r1 ? ' ' + r1 : '') + ', ' + main + '.' : ifPart + ', ' + s2 + ' ___ (' + v2 + ') ' + r2 + '.'), answers: gapIf ? [p1] : [m, (s2 === 'I' ? 'I' : s2) + '\'ll ' + v2], say: full, mistakes: mist,
+        rule: '1er conditionnel (possible) : **If + présent**, **will + verbe** → If it rains, we\'ll stay at home.',
+        explain: '→ ' + full,
+        steps: ['Situation **possible / réelle** dans le futur → 1er conditionnel.', 'Après **if** : le **présent** (jamais will) → ' + ifPart + '.', 'Conséquence : **will** + base verbale → ' + main + '.']
+      });
+    }
+  };
+  G.cond2 = {
+    label: 'If + prétérit → would', chapter: 'en20',
+    make() {
+      const [s1, v1, r1, s2, v2, r2] = pick(C2);
+      const p1s = v1 === 'be' ? ['were'].concat(s1 === 'I' || t3s(s1) ? ['was'] : []) : pretOf(v1), p1 = p1s[0], m = 'would ' + v2;
+      const ifPart = 'If ' + s1 + ' ' + p1 + ' ' + r1, main = s2 + ' ' + m + ' ' + r2, full = ifPart + ', ' + main + '.';
+      const gapIf = Math.random() < 0.5;
+      const mist = gapIf ? [{ text: 'would ' + v1, msg: 'Après **if**, jamais de would : on met le **prétérit** → **' + p1 + '**.' }, { text: presOf(s1, v1), msg: 'C\'est une situation **imaginaire** (2e conditionnel) : après if, le **prétérit** → **' + p1 + '**.' }].concat(v1 === 'be' ? [] : [{ text: 'will ' + v1, msg: 'Pas de will après if. Situation imaginaire → prétérit : **' + p1 + '**.' }])
+        : [{ text: 'will ' + v2, msg: 'Situation **imaginaire** (if + prétérit) → **would**, pas will : **' + m + '**.' }, { text: 'would ' + pretOf(v2)[0], msg: 'Après would, la **base** du verbe : **' + m + '**.' }, { text: 'would to ' + v2, msg: 'Pas de « to » après would : **' + m + '**.' }];
+      return q('cond2', {
+        mode: 'write', topic: '2e conditionnel', chapter: 'en20', level: 3, placeholder: gapIf ? 'le verbe après if' : 'would + verbe',
+        prompt: 'Complète (situation imaginaire) : ' + (gapIf ? 'If ' + s1 + ' ___ (' + v1 + ') ' + r1 + ', ' + main + '.' : ifPart + ', ' + s2 + ' ___ (' + v2 + ') ' + r2 + '.'), answers: gapIf ? p1s : [m, (s2 === 'I' ? 'I' : s2) + '\'d ' + v2], say: full, mistakes: mist,
+        rule: '2e conditionnel (imaginaire) : **If + prétérit**, **would + verbe** → If I had more time, I would travel. (If I **were** you…)',
+        explain: '→ ' + full + ' (situation imaginaire : « si … , je … -rais »)',
+        steps: ['Situation **imaginaire** ou peu probable → 2e conditionnel (en français : si + imparfait, conditionnel).', 'Après **if** : le **prétérit** → ' + ifPart + (v1 === 'be' ? ' (avec be, on dit souvent **were** pour tous : If I were you)' : '') + '.', 'Conséquence : **would** + base verbale → ' + main + '.']
+      });
+    }
+  };
+
   for (const k in G) {
     G[k].subject = 'anglais';
     const make = G[k].make;

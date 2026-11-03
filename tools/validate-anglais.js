@@ -11,10 +11,14 @@ const APP = global.APP, E = APP.en, U = APP.util;
 const dir = path.join(root, 'js/data/anglais');
 let files = process.argv.slice(2).map((f) => path.resolve(f));
 if (!files.length) files = fs.readdirSync(dir).filter((f) => /^en\d+\.js$/.test(f)).map((f) => path.join(dir, f));
-// le chapitre des verbes irréguliers sert à la détection des erreurs : on le charge toujours en premier
+// le chapitre des verbes irréguliers sert à la détection des erreurs : on le charge toujours en premier,
+// puis tous les autres chapitres (pour repérer les mots déjà vus ailleurs) ; seuls les fichiers demandés sont vérifiés
 const verbs = path.join(dir, 'en9.js');
-const order = [verbs].filter((f) => fs.existsSync(f) && !files.includes(f)).concat(files.sort((a, b) => (a === verbs ? -1 : b === verbs ? 1 : 0)));
+const num = (f) => parseInt(path.basename(f).slice(2)) || 0;
+const others = fs.readdirSync(dir).filter((f) => /^en\d+\.js$/.test(f)).map((f) => path.join(dir, f)).filter((f) => f !== verbs && !files.includes(f)).sort((a, b) => num(a) - num(b));
+const order = [verbs].filter((f) => fs.existsSync(f) && !files.includes(f)).concat(files.sort((a, b) => (a === verbs ? -1 : b === verbs ? 1 : num(a) - num(b))));
 let total = 0;
+for (const f of others) { try { eval(fs.readFileSync(f, 'utf8')); } catch (e) { console.log('(' + path.basename(f) + ' ignoré : ' + e.message + ')'); } }
 for (const f of order) {
   const before = new Set(APP.chapters);
   try { eval(fs.readFileSync(f, 'utf8')); } catch (e) { console.log(path.basename(f) + ' : ERREUR DE SYNTAXE / CHARGEMENT : ' + e.message); total++; continue; }
@@ -53,11 +57,15 @@ for (const f of order) {
     if (/^(a|an|the|to) /i.test(w.en) && w.pos !== 'x') warn('mot « ' + w.en + ' » : retire l\'article / le « to » (accepté automatiquement)');
     if (w.sec && !secIds.has(w.sec)) err('mot ' + w.en + ' : sec inconnue ' + w.sec);
     if (!w.ex) warn('mot sans exemple : ' + w.en);
+    const dup = APP.chapters.find((c) => c !== ch && c.subject === 'anglais' && (c.words || []).some((x) => U.norm(x.en) === ke));
+    if (dup) warn('mot « ' + w.en + ' » déjà appris au chapitre ' + dup.num + ' (' + dup.id + ') : choisis-en un autre ou retire-le');
   }
   const seenP = new Map();
   for (const p of ch.phrases || []) {
     if (!p.en || !p.fr) { err('phrase incomplète : ' + JSON.stringify(p)); continue; }
     const k = U.norm(p.fr); if (seenP.has(k)) err('phrase française en double : ' + p.fr); seenP.set(k, 1);
+    const dupP = APP.chapters.find((c) => c !== ch && c.subject === 'anglais' && (c.phrases || []).some((x) => U.norm(x.en) === U.norm(p.en)));
+    if (dupP) warn('phrase « ' + p.en + ' » déjà au chapitre ' + dupP.num);
     if (p.sec && !secIds.has(p.sec)) err('phrase ' + p.en + ' : sec inconnue ' + p.sec);
   }
   if (!ch.verbs) {

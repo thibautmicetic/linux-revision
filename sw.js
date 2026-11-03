@@ -1,5 +1,5 @@
 /* Service worker : met toute l'application en cache pour un fonctionnement 100 % hors ligne. (généré par tools/build-sw.py) */
-const CACHE = 'linuxrev-c0f78b6830';
+const CACHE = 'linuxrev-cf994b2eb4';
 const ASSETS = [
  "./",
  "index.html",
@@ -50,11 +50,23 @@ const ASSETS = [
  "js/data/anglais/dialogues-1.js",
  "js/data/anglais/dialogues-2.js",
  "js/data/anglais/dialogues-3.js",
+ "js/data/anglais/dialogues-4.js",
+ "js/data/anglais/dialogues-5.js",
+ "js/data/anglais/dialogues-6.js",
+ "js/data/anglais/dialogues-7.js",
  "js/data/anglais/en1.js",
  "js/data/anglais/en10.js",
  "js/data/anglais/en11.js",
  "js/data/anglais/en12.js",
+ "js/data/anglais/en13.js",
+ "js/data/anglais/en14.js",
+ "js/data/anglais/en15.js",
+ "js/data/anglais/en16.js",
+ "js/data/anglais/en17.js",
+ "js/data/anglais/en18.js",
+ "js/data/anglais/en19.js",
  "js/data/anglais/en2.js",
+ "js/data/anglais/en20.js",
  "js/data/anglais/en3.js",
  "js/data/anglais/en4.js",
  "js/data/anglais/en5.js",

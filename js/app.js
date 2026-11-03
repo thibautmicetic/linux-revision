@@ -60,6 +60,9 @@
   const findItem = (id) => { for (const c of APP.chapters) for (const x of [].concat(c.quiz, c.exercises, c.cards)) if (x.id === id) return x; return null; };
   const R = (s) => '#/s/' + (s || SUBJ);
   function subjMastery(s) { const l = chs(s).map((c) => P.chapterStats(c).total); return l.length ? l.reduce((a, b) => a + b, 0) / l.length : 0; }
+  // niveaux d'une matière (anglais : niveau 1 débutant, niveau 2 A2) : titre à afficher avant le premier chapitre de chaque niveau
+  const TIERS = { 1: 'Niveau 1 · Débutant', 2: 'Niveau 2 · Se débrouiller au quotidien' };
+  const tierHead = (c, list) => { if (!list.some((x) => x.tier)) return ''; const i = list.indexOf(c), t = c.tier || 1; return i === 0 || (list[i - 1].tier || 1) !== t ? TIERS[t] || 'Niveau ' + t : ''; };
   const gensOf = (s, chId) => Object.entries(APP.generators || {}).filter(([, g]) => g.subject === (s || SUBJ) && (!chId || g.chapter === chId));
 
   // Sélection intelligente (répétition espacée) : à revoir d'abord, puis nouveautés, puis le reste
@@ -87,7 +90,7 @@
     const sw = APP.subjects.map((s) => '<a href="' + R(s.id) + '" class="sw ' + (s.id === SUBJ ? 'on' : '') + '" style="--sc:' + s.color + '"><span class="sw-b">' + esc(s.badge) + '</span>' + esc(s.short) + '</a>').join('');
     $('#nav').innerHTML = '<a href="#/" class="' + (active === 'hub' ? 'on' : '') + '">' + icon('home') + '<span>Accueil</span></a><div class="subsw">' + sw + '</div>' +
       navItems(SUBJ).map(([h, l, i, k]) => '<a href="' + h + '" class="' + (active === k ? 'on' : '') + '">' + icon(i) + '<span>' + esc(l) + '</span>' + (k === 'entrainement' && due ? '<span class="badge">' + due + '</span>' : '') + '</a>').join('') +
-      '<div class="sub">Chapitres · ' + esc(subj().short) + '</div>' + chs().map((c) => '<a href="#/ch/' + c.id + '" data-ch="' + c.id + '" class="' + (active === 'ch/' + c.id ? 'on' : '') + '"><span class="chip-ch" style="width:24px;height:22px;font-size:.7rem;border-radius:7px">' + c.num + '</span><span class="small">' + esc(c.title) + '</span></a>').join('');
+      '<div class="sub">Chapitres · ' + esc(subj().short) + '</div>' + chs().map((c, i, l) => (tierHead(c, l) && i ? '<div class="sub">' + esc(tierHead(c, l)) + '</div>' : '') + '<a href="#/ch/' + c.id + '" data-ch="' + c.id + '" class="' + (active === 'ch/' + c.id ? 'on' : '') + '"><span class="chip-ch" style="width:24px;height:22px;font-size:.7rem;border-radius:7px">' + c.num + '</span><span class="small">' + esc(c.title) + '</span></a>').join('');
     // mobile : en anglais, « Aujourd'hui » (le parcours) remplace l'accueil, toujours accessible par le logo
     const B = (isEn() ? [] : [['#/', 'Accueil', 'home', 'hub']]).concat(navItems(SUBJ).filter((x) => ['parcours', 'cours', 'entrainement', 'tool', 'progres'].includes(x[3])));
     $('#bottom').innerHTML = B.map(([h, l, i, k]) => '<a href="' + h + '" class="' + (active === k ? 'on' : '') + '">' + icon(i) + '<span>' + (k === 'entrainement' ? 'S\'entraîner' : k === 'parcours' ? 'Aujourd\'hui' : esc(l)) + '</span></a>').join('');
@@ -195,6 +198,7 @@
     for (const c of chs()) {
       const s = P.chapterStats(c);
       const nm = APP.missions.filter((m) => m.chapter === c.id).length;
+      if (tierHead(c, chs())) h += '<div class="tier-h">' + esc(tierHead(c, chs())) + '</div>';
       h += '<a class="card click ch-card" data-ch="' + c.id + '" href="#/ch/' + c.id + '"><div class="row" style="gap:12px;flex-wrap:nowrap"><span class="chip-ch">' + c.num + '</span><div style="flex:1;min-width:0"><b>' + esc(c.title) + '</b><div class="muted small">' + esc(c.subtitle) + '</div><div class="muted small">' + c.quiz.length + ' quiz · ' + c.exercises.length + ' exercices' + (nm ? ' · ' + nm + ' TP' : '') + '</div></div><b>' + pct(s.total) + '%</b></div><div class="bar" style="margin-top:12px"><i style="width:' + pct(s.total) + '%"></i></div></a>';
     }
     h += '</div><div class="section-title"><h2>Accès rapide</h2></div><div class="grid g4">';
@@ -219,10 +223,11 @@
   /* ================= COURS ================= */
   function pageCours() {
     const S = subj();
-    let h = '<div class="page"><div class="kicker">' + esc(S.title) + '</div><h1>Cours</h1><p class="muted">' + (SUBJ === 'linux' ? '4 chapitres : chaque cours est accompagné de son TP. Lis les fiches, apprends les commandes, puis mets-les en pratique dans le terminal simulé.' : SUBJ === 'anglais' ? chs().length + ' chapitres progressifs pour débuter. Pour chacun : des fiches à écouter (clique sur l\'anglais pour l\'entendre), le vocabulaire, des QCM, des exercices à l\'écoute, à l\'écrit et à l\'oral.' : chs().length + ' chapitres de théorie de base. Pour chacun : fiches, formulaire, quiz, exercices où tu tapes les formules, et calculs générés à l\'infini.') + '</p><div class="grid" style="margin-top:18px">';
+    let h = '<div class="page"><div class="kicker">' + esc(S.title) + '</div><h1>Cours</h1><p class="muted">' + (SUBJ === 'linux' ? '4 chapitres : chaque cours est accompagné de son TP. Lis les fiches, apprends les commandes, puis mets-les en pratique dans le terminal simulé.' : SUBJ === 'anglais' ? chs().length + ' chapitres progressifs : le niveau 1 pour débuter, le niveau 2 pour se débrouiller au quotidien (médecin, travail, téléphone, services). Pour chacun : des fiches à écouter (clique sur l\'anglais pour l\'entendre), le vocabulaire, des QCM, des exercices à l\'écoute, à l\'écrit et à l\'oral.' : chs().length + ' chapitres de théorie de base. Pour chacun : fiches, formulaire, quiz, exercices où tu tapes les formules, et calculs générés à l\'infini.') + '</p><div class="grid" style="margin-top:18px">';
     for (const c of chs()) {
       const s = P.chapterStats(c);
       const ms = APP.missions.filter((m) => m.chapter === c.id);
+      if (tierHead(c, chs())) h += '<div class="tier-h">' + esc(tierHead(c, chs())) + '</div>';
       h += '<div class="card ch-card" data-ch="' + c.id + '"><div class="spread"><div class="row" style="flex-wrap:nowrap"><span class="chip-ch">' + c.num + '</span><div><h2 style="margin:0">' + esc(c.title) + '</h2><div class="muted small">' + esc(c.subtitle) + '</div></div></div><b style="font-size:1.3rem">' + pct(s.total) + '%</b></div><div class="bar" style="margin:12px 0"><i style="width:' + pct(s.total) + '%"></i></div>';
       h += '<div class="grid g4 small"><div><b>' + s.read + '/' + s.secs + '</b><div class="muted">fiches lues</div></div><div><b>' + pct(s.mq) + '%</b><div class="muted">quiz maîtrisés</div></div><div><b>' + pct(s.mx) + '%</b><div class="muted">exercices maîtrisés</div></div><div>' + (ms.length ? '<b>' + s.mDone + '/' + ms.length + '</b><div class="muted">TP réussis</div>' : '<b>' + pct(s.mc) + '%</b><div class="muted">' + (c.subject === 'anglais' ? 'cartes sues' : 'formules sues') + '</div>') + '</div></div>';
       h += '<div class="row" style="margin-top:14px"><a class="btn sm" href="#/ch/' + c.id + '">Ouvrir</a><a class="btn sm ghost" href="#/ch/' + c.id + '/quiz">Quiz</a><a class="btn sm ghost" href="#/ch/' + c.id + '/exos">' + esc(S.exo.label) + '</a>' + (ms.length ? '<a class="btn sm ghost" href="#/ch/' + c.id + '/tp">TP pratiques</a>' : c.subject === 'anglais' ? '<a class="btn sm ghost" href="#/ch/' + c.id + '/oral">Parler</a>' : '<a class="btn sm ghost" href="#/ch/' + c.id + '/formules">Formulaire</a>') + '</div></div>';
@@ -362,18 +367,26 @@
     const cards = allOf('card').filter((x) => P.isDue(x.id));
     let items = pickItems(pool, Math.max(8, goal - Math.min(cards.length, 6))).concat(cards.slice(0, 6));
     if (isEn()) { let k = 0; items = items.filter((x) => x.mode !== 'speak' || k++ < 3); }
-    if (gensOf().length) for (let k = 0; k < 3; k++) items.push(APP.genRandom(SUBJ));
+    if (gensOf().length) for (let k = 0; k < 3; k++) items.push(genAny());
     startSession({ title: 'Révision du jour — ' + subj().short, items: U.shuffle(items), back: R() + '/entrainement' });
   }
   function startExam(chIds) {
     const q = U.shuffle(allOf('quiz', chIds)).slice(0, 12);
     const x = U.shuffle(allOf('exo', chIds)).slice(0, 6);
-    const g = gensOf().length ? [APP.genRandom(SUBJ), APP.genRandom(SUBJ)] : [];
+    const g = gensOf().length ? [genAny(), genAny()] : [];
     startSession({ title: 'Examen blanc — ' + subj().short, items: U.shuffle(q.concat(x, g)), exam: true, limit: 25 * 60, back: R() + '/entrainement' });
+  }
+  // exercice généré au hasard ; en anglais, seulement sur les chapitres déjà atteints dans le parcours
+  function genAny() {
+    if (!isEn()) return APP.genRandom(SUBJ);
+    const upTo = (n) => gensOf('anglais').filter(([, g]) => chOf(g.chapter) && chOf(g.chapter).num <= n);
+    let ok = upTo(pathChapterNum());
+    if (ok.length < 2) ok = upTo(6);
+    return ok.length ? APP.genQuestion(U.pick(ok)[0]) : APP.genRandom(SUBJ);
   }
   function startGen(type, back) {
     const items = [];
-    for (let k = 0; k < 10; k++) items.push(type === 'mix' ? APP.genRandom(SUBJ) : APP.genQuestion(type));
+    for (let k = 0; k < 10; k++) items.push(type === 'mix' ? genAny() : APP.genQuestion(type));
     startSession({ title: type === 'mix' ? (isEn() ? 'Conjugaison express' : 'Calculs express') : APP.generators[type].label, items, back: back || R() + '/entrainement', gen: type });
   }
   function itemKind(it) {
@@ -849,10 +862,13 @@
   function buildPlan(round) {
     const seen = pathState().seen, st = P.state();
     const list = chs('anglais');
-    const c = list.find((x) => { const u = unitsOf(x); return u.words.some((w) => !seen[w.id]) || u.phrases.some((p) => !seen[p.id]); }) || list[list.length - 1];
+    const knownEn = new Set(list.flatMap((x) => { const ux = unitsOf(x); return ux.words.concat(ux.phrases).filter((w) => seen[w.id]).map((w) => U.norm(unitEn(w))); }));
+    const c = list.find((x) => { const u = unitsOf(x); return u.words.concat(u.phrases).some((w) => !seen[w.id] && !knownEn.has(U.norm(unitEn(w)))); }) || list[list.length - 1];
     const u = unitsOf(c);
-    const W = u.words.filter((w) => !seen[w.id]).slice(0, 5);
-    const PH = u.phrases.filter((p) => !seen[p.id]).slice(0, W.length ? 2 : 4);
+    // un mot déjà appris dans un chapitre précédent n'est pas représenté comme nouveau (il reste dans les exercices)
+    const known = knownEn;
+    const W = u.words.filter((w) => !seen[w.id] && !known.has(U.norm(unitEn(w)))).slice(0, 5);
+    const PH = u.phrases.filter((p) => !seen[p.id] && !known.has(U.norm(p.en))).slice(0, W.length ? 2 : 4);
     const sec = c.sections.find((s) => !st.sections[s.id] && s.id !== c.vocabSec);
     const okSec = new Set(c.sections.filter((s) => st.sections[s.id] || s === sec || s.id === c.vocabSec).map((s) => s.id));
     const used = new Set();
@@ -924,7 +940,9 @@
       speak: 'Les dire à voix haute, au micro (' + n('speak') + ' questions).'
     };
     const day = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-    let h = '<div class="page"><div class="hero"><div><div class="kicker">Anglais · ' + esc(day) + '</div><h1>Parcours du jour</h1><p class="muted">Environ <b>10 minutes</b>. Fais les étapes dans l\'ordre : l\'application choisit pour toi ce qu\'il faut apprendre et revoir.</p><p class="small muted">Chapitre ' + c.num + ' : ' + esc(c.title) + (streak ? ' · ' + icon('fire') + ' ' + pl_(streak, 'jour') + ' de suite' : '') + '</p></div>' + ring(steps.length ? ndone / steps.length : 1, ndone + '<small>/ ' + steps.length + ' étapes</small>', 116, APP.subject('anglais').color) + '</div>';
+    let h = '<div class="page"><div class="hero"><div><div class="kicker">Anglais · ' + esc(day) + '</div><h1>Parcours du jour</h1><p class="muted">Environ <b>10 minutes</b>. Fais les étapes dans l\'ordre : l\'application choisit pour toi ce qu\'il faut apprendre et revoir.</p><p class="small muted">' + (c.tier ? 'Niveau ' + c.tier + ' · ' : '') + 'Chapitre ' + c.num + ' : ' + esc(c.title) + (streak ? ' · ' + icon('fire') + ' ' + pl_(streak, 'jour') + ' de suite' : '') + '</p></div>' + ring(steps.length ? ndone / steps.length : 1, ndone + '<small>/ ' + steps.length + ' étapes</small>', 116, APP.subject('anglais').color) + '</div>';
+    const firstOfTier = c.tier > 1 && chs('anglais').find((x) => x.tier === c.tier) === c && !unitsOf(c).words.concat(unitsOf(c).phrases).some((x) => pathState().seen[x.id] && pathState().seen[x.id] < pl.date);
+    if (firstOfTier) h += '<div class="callout key" style="margin-top:16px"><b>Bravo, tu as terminé le niveau ' + (c.tier - 1) + ' !</b> Place au <b>niveau ' + c.tier + '</b> : ' + esc((TIERS[c.tier] || '').replace(/^Niveau \d+ · /, '').toLowerCase()) + ' (raconter, demander poliment, le médecin, le travail, le téléphone, les services…). Le parcours continue de la même façon, 5 mots par jour.</div>';
     h += nx ? '<div class="next" style="margin:18px 0"><div style="flex:1"><b style="font-size:1.08rem">Étape ' + (steps.indexOf(nx) + 1) + ' sur ' + steps.length + ' : ' + esc(PSTEPS[nx][0]) + '</b><p>' + esc(desc[nx]) + '</p></div><button class="btn" data-step="' + nx + '">' + (ndone ? 'Continuer' : 'Commencer') + ' →</button></div>'
       : '<div class="next pdone"><div style="flex:1"><b style="font-size:1.08rem">Bravo, parcours terminé !</b><p>Reviens demain : de nouveaux mots t\'attendent, et l\'application te fera revoir ceux d\'aujourd\'hui au bon moment.</p></div></div>';
     h += '<div class="path">' + steps.map((k, i) => {

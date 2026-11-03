@@ -48,6 +48,8 @@
     if (E.badFinalContraction(s)) return [E.clean(s) + ' #contraction'];
     const base = expand(E.clean(s));
     const out = new Set([base]);
+    // 'd = would (I'd like) ou had (He'd left)
+    if (/\b(i|you|he|she|it|we|they)'d\b/.test(E.clean(s))) out.add(expand(E.clean(s).replace(/\b(i|you|he|she|it|we|they)'d\b/g, '$1 had')));
     if (/\b(he|she|it|that|there|what|where|who|how|here)'s\b/.test(base)) {
       out.add(base.replace(/\b(he|she|it|that|there|what|where|who|how|here)'s\b/g, '$1 is'));
       out.add(base.replace(/\b(he|she|it|that|there|what|where|who|how|here)'s\b/g, '$1 has'));
@@ -235,12 +237,19 @@
     const acc = E.accent() === 'us' ? /en[-_]US/i : /en[-_]GB/i;
     return voices.find((v) => v.name === pref) || voices.find((v) => acc.test(v.lang) && v.localService && /enhanced|premium|natural/i.test(v.name)) || voices.find((v) => acc.test(v.lang) && v.localService) || voices.find((v) => acc.test(v.lang)) || voices.find((v) => v.localService) || voices[0] || null;
   };
+  // épellation (« A, H, J », « B-R-O-W-N ») : la synthèse lirait « a » comme l'article → on lui donne le nom des lettres
+  const LETTER = { a: 'ay', b: 'bee', c: 'see', d: 'dee', e: 'ee', f: 'eff', g: 'gee', h: 'aitch', i: 'eye', j: 'jay', k: 'kay', l: 'el', m: 'em', n: 'en', o: 'oh', p: 'pee', q: 'cue', r: 'ar', s: 'ess', t: 'tee', u: 'you', v: 'vee', w: 'double you', x: 'ex', y: 'why', z: 'zed' };
+  E.speakable = (t) => {
+    t = String(t);
+    if (!/^\s*[A-Za-z](\s*[,.\-–]?\s*[A-Za-z])*\s*[.!?]?\s*$/.test(t) || /[A-Za-z]{2}/.test(t)) return t;
+    return t.match(/[A-Za-z]/g).map((x) => (x === 'z' || x === 'Z') && E.accent() === 'us' ? 'zee' : LETTER[x.toLowerCase()]).join(', ');
+  };
   E.say = function (text, rate, onend) {
     if (!E.canSpeak() || !text) { if (onend) onend(); return false; }
     try {
       seq++; // interrompt un dialogue en cours
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(String(text));
+      const u = new SpeechSynthesisUtterance(E.speakable(text));
       const v = E.pickVoice();
       if (v) u.voice = v;
       u.lang = v ? v.lang : E.accent() === 'us' ? 'en-US' : 'en-GB';
@@ -278,7 +287,7 @@
       if (i >= lines.length) { if (o.onEnd) o.onEnd(); return; }
       const k = i++, l = lines[k];
       try {
-        const u = new SpeechSynthesisUtterance(String(l.text));
+        const u = new SpeechSynthesisUtterance(E.speakable(l.text));
         const vf = E.voiceFor(l.g);
         if (vf.voice) u.voice = vf.voice;
         u.lang = vf.voice ? vf.voice.lang : E.accent() === 'us' ? 'en-US' : 'en-GB';
