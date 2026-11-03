@@ -1,5 +1,5 @@
 /* Service worker : met toute l'application en cache pour un fonctionnement 100 % hors ligne. (généré par tools/build-sw.py) */
-const CACHE = 'linuxrev-6715a7e627';
+const CACHE = 'linuxrev-462b80a2e8';
 const ASSETS = [
  "./",
  "index.html",
@@ -47,6 +47,20 @@ const ASSETS = [
  "js/data/maths/m7.js",
  "js/data/maths/m8.js",
  "js/data/maths/m9.js",
+ "js/data/anglais/en1.js",
+ "js/data/anglais/en10.js",
+ "js/data/anglais/en11.js",
+ "js/data/anglais/en12.js",
+ "js/data/anglais/en2.js",
+ "js/data/anglais/en3.js",
+ "js/data/anglais/en4.js",
+ "js/data/anglais/en5.js",
+ "js/data/anglais/en6.js",
+ "js/data/anglais/en7.js",
+ "js/data/anglais/en8.js",
+ "js/data/anglais/en9.js",
+ "js/anglais/en.js",
+ "js/anglais/gen.js",
  "icons/apple-touch-icon.png",
  "icons/icon-192.png",
  "icons/icon-512.png",

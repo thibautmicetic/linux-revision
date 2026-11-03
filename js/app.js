@@ -25,7 +25,11 @@
     calc: '<rect x="5" y="2.5" width="14" height="19" rx="2"/><path d="M8 6.5h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18.5h8"/>',
     redo: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>',
     fire: '<path d="M12 22c4 0 7-3 7-7 0-5-5-6-4-12-4 2-7 6-7 9-1-1-2-2-2-4-2 2-3 4.5-3 7 0 4 4 7 9 7z"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    mic: '<rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/>',
+    speaker: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
+    ear: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="2.5" y="14" width="5" height="7" rx="2"/><rect x="16.5" y="14" width="5" height="7" rx="2"/>',
+    pen: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="m14 6 4 4"/>'
   };
   const icon = (n, cls) => '<svg class="ic ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[n] || I.grid) + '</svg>';
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
@@ -40,11 +44,17 @@
   const subj = () => APP.subject(SUBJ);
   const setSubj = (id) => { if (APP.subject(id) && id !== SUBJ) { SUBJ = id; P.setting('subject', id); } };
   const isMath = (x) => (x ? x.subject === 'maths' : SUBJ === 'maths');
+  const isEn = (x) => (x ? x.subject === 'anglais' : SUBJ === 'anglais');
+  const EN = () => APP.en;
+  const sayBtn = (t, label) => (t && APP.en ? '<button class="btn sm ghost say-b" data-say="' + esc(t) + '" aria-label="Écouter">' + icon('speaker') + (label ? ' ' + esc(label) : '') + '</button>' : '');
+  const mountSay = (el) => { if (APP.en && el) APP.en.mount(el); };
+  // réservoirs d'exercices par mode (anglais : QCM, écoute, écriture, oral)
+  const MODES = { choice: (c) => c.quiz.filter((x) => x.mode !== 'listen'), listen: (c) => c.quiz.filter((x) => x.mode === 'listen').concat(c.exercises.filter((x) => x.mode === 'dictee')), write: (c) => c.exercises.filter((x) => x.mode !== 'speak' && x.mode !== 'dictee'), speak: (c) => c.exercises.filter((x) => x.mode === 'speak') };
   const mathify = (el) => { if (APP.renderMath) APP.renderMath(el); };
   const chs = (s) => APP.chaptersOf(s || SUBJ);
   const chOf = (id) => APP.chapter(id);
   const pct = (x) => Math.round((x || 0) * 100);
-  const allOf = (kind, chIds, s) => chs(s).filter((c) => !chIds || chIds.includes(c.id)).flatMap((c) => (kind === 'quiz' ? c.quiz : kind === 'exo' ? c.exercises : kind === 'card' ? c.cards : []));
+  const allOf = (kind, chIds, s) => chs(s).filter((c) => !chIds || chIds.includes(c.id)).flatMap((c) => (MODES[kind] ? MODES[kind](c) : kind === 'quiz' ? c.quiz : kind === 'exo' ? c.exercises : kind === 'card' ? c.cards : []));
   const findItem = (id) => { for (const c of APP.chapters) for (const x of [].concat(c.quiz, c.exercises, c.cards)) if (x.id === id) return x; return null; };
   const R = (s) => '#/s/' + (s || SUBJ);
   function subjMastery(s) { const l = chs(s).map((c) => P.chapterStats(c).total); return l.length ? l.reduce((a, b) => a + b, 0) / l.length : 0; }
@@ -68,7 +78,7 @@
   /* ---------- navigation ---------- */
   function navItems(s) {
     const S = APP.subject(s);
-    return [[R(s), 'Tableau de bord', 'grid', 'dash'], [R(s) + '/cours', 'Cours', 'book', 'cours'], [R(s) + '/entrainement', 'Entraînement', 'target', 'entrainement'], [S.tool.route, S.tool.label, S.tool.icon, 'tool'], [R(s) + '/memo', S.memo.label, s === 'maths' ? 'sigma' : 'search', 'memo'], [R(s) + '/progres', 'Progrès', 'chart', 'progres']];
+    return [[R(s), 'Tableau de bord', 'grid', 'dash'], [R(s) + '/cours', 'Cours', 'book', 'cours'], [R(s) + '/entrainement', 'Entraînement', 'target', 'entrainement'], [S.tool.route, S.tool.label, S.tool.icon, 'tool'], [R(s) + '/memo', S.memo.label, s === 'maths' ? 'sigma' : s === 'anglais' ? 'book' : 'search', 'memo'], [R(s) + '/progres', 'Progrès', 'chart', 'progres']];
   }
   function renderNav(active) {
     const due = P.dueCount(SUBJ);
@@ -94,7 +104,7 @@
     // anciennes adresses (version Linux seule)
     const legacy = { cours: 'cours', entrainement: 'entrainement', memo: 'memo', progres: 'progres' };
     if (legacy[parts[0]]) { location.replace(R('linux') + '/' + parts[0]); return; }
-    if (parts[0] === 's' && APP.subject(parts[1])) { setSubj(parts[1]); active = parts[2] === 'labo' ? 'tool' : parts[2] || 'dash'; }
+    if (parts[0] === 's' && APP.subject(parts[1])) { setSubj(parts[1]); active = parts[2] === 'labo' || parts[2] === 'oral' ? 'tool' : parts[2] || 'dash'; }
     else if (parts[0] === 'ch' || parts[0] === 'fiche') { const c = chOf(parts[1]); if (c) { setSubj(c.subject); active = 'ch/' + c.id; } }
     else if (parts[0] === 'tp') { const m = APP.missions.find((x) => x.id === parts[1]); if (m) { const c = chOf(m.chapter); setSubj(c.subject); active = 'ch/' + c.id; } }
     else if (parts[0] === 'terminal') { setSubj('linux'); active = 'tool'; }
@@ -111,6 +121,7 @@
           case 'memo': pageMemo(q); break;
           case 'progres': pageProgress(); break;
           case 'labo': pageLabo(q); break;
+          case 'oral': pageOral(); break;
           default: pageDash();
         }
       } else if (parts[0] === 'ch') pageChapter(parts[1], parts[2]);
@@ -131,7 +142,7 @@
   }
   function pageHub() {
     const goal = P.setting('goal') || 20, today = P.todayCount(), streak = P.streak();
-    let h = '<div class="page"><div class="hero"><div><div class="kicker">ESEO · cycle ingénieur</div><h1>' + (today ? 'Bon retour !' : 'Prêt à réviser ?') + '</h1><p class="muted">Objectif du jour : <b>' + Math.min(today, goal) + ' / ' + goal + '</b> questions' + (streak ? ' · ' + icon('fire') + ' série de <b>' + streak + ' jour' + (streak > 1 ? 's' : '') + '</b>' : '') + '</p><div class="bar" style="max-width:340px"><i style="width:' + Math.min(100, (today / goal) * 100) + '%;background:var(--ok)"></i></div></div>' + ring(Math.min(1, today / goal), Math.min(today, goal) + '<small>/ ' + goal + '</small>') + '</div>';
+    let h = '<div class="page"><div class="hero"><div><div class="kicker">Révisions hors ligne</div><h1>' + (today ? 'Bon retour !' : 'Prêt à réviser ?') + '</h1><p class="muted">Objectif du jour : <b>' + Math.min(today, goal) + ' / ' + goal + '</b> questions' + (streak ? ' · ' + icon('fire') + ' série de <b>' + streak + ' jour' + (streak > 1 ? 's' : '') + '</b>' : '') + '</p><div class="bar" style="max-width:340px"><i style="width:' + Math.min(100, (today / goal) * 100) + '%;background:var(--ok)"></i></div></div>' + ring(Math.min(1, today / goal), Math.min(today, goal) + '<small>/ ' + goal + '</small>') + '</div>';
     h += '<div class="section-title"><h2>Matières</h2></div><div class="grid g2">';
     for (const s of APP.subjects) {
       const m = subjMastery(s.id), due = P.dueCount(s.id), nCh = chs(s.id).length;
@@ -165,7 +176,7 @@
     const gm = subjMastery(SUBJ);
     const nx = nextAction();
     const st = P.state();
-    const answered = Object.keys(st.items).filter((id) => { const x = findItem(id); return x ? x.subject === SUBJ : (SUBJ === 'maths') === /^gen-m/.test(id); }).length;
+    const answered = Object.keys(st.items).filter((id) => APP.subjectOfId(id) === SUBJ).length;
     const mDone = APP.missions.filter((m) => chOf(m.chapter) && chOf(m.chapter).subject === SUBJ && st.missions[m.id] && st.missions[m.id].done).length;
     const mTot = APP.missions.filter((m) => chOf(m.chapter) && chOf(m.chapter).subject === SUBJ).length;
     let h = '<div class="page"><div class="hero"><div><div class="kicker">' + esc(S.kicker) + '</div><h1>' + esc(S.title) + '</h1><p class="muted">' + esc(S.desc) + '</p></div>' + ring(gm, pct(gm) + '%<small>maîtrise</small>', 116, S.color) + '</div>';
@@ -178,8 +189,9 @@
       h += '<a class="card click ch-card" data-ch="' + c.id + '" href="#/ch/' + c.id + '"><div class="row" style="gap:12px;flex-wrap:nowrap"><span class="chip-ch">' + c.num + '</span><div style="flex:1;min-width:0"><b>' + esc(c.title) + '</b><div class="muted small">' + esc(c.subtitle) + '</div><div class="muted small">' + c.quiz.length + ' quiz · ' + c.exercises.length + ' exercices' + (nm ? ' · ' + nm + ' TP' : '') + '</div></div><b>' + pct(s.total) + '%</b></div><div class="bar" style="margin-top:12px"><i style="width:' + pct(s.total) + '%"></i></div></a>';
     }
     h += '</div><div class="section-title"><h2>Accès rapide</h2></div><div class="grid g4">';
-    const qa = [['quiz', 'Quiz rapide', '10 questions de cours', 'q'], [SUBJ === 'maths' ? 'sigma' : 'cmd', S.exo.label, '10 exercices pratiques', 'x'], [S.tool.icon, S.tool.label, S.tool.desc, 't'], ['clock', 'Examen blanc', '20 questions, 25 min', 'e']];
+    let qa = [['quiz', 'Quiz rapide', '10 questions de cours', 'q'], [SUBJ === 'maths' ? 'sigma' : 'cmd', S.exo.label, '10 exercices pratiques', 'x'], [S.tool.icon, S.tool.label, S.tool.desc, 't'], ['clock', 'Examen blanc', '20 questions, 25 min', 'e']];
     if (gensOf().length) qa.splice(2, 0, ['calc', 'Calculs express', '10 exercices générés', 'g']);
+    if (isEn()) qa = [['ear', 'Écouter', '10 mots et phrases à reconnaître', 'm:listen'], ['pen', 'Écrire', '10 exercices écrits', 'm:write'], ['mic', 'Parler', '10 phrases à dire au micro', 'm:speak'], ['calc', 'Conjugaison express', '10 exercices générés', 'g']];
     for (const [i, t, s, k] of qa.slice(0, 4)) h += '<button class="card click qa" data-qa="' + k + '"><span class="ico">' + icon(i) + '</span><b>' + esc(t) + '</b><span>' + esc(s) + '</span></button>';
     h += '</div></div>';
     main.innerHTML = h;
@@ -191,19 +203,20 @@
       if (k === 'g') startGen('mix');
       if (k === 't') location.hash = S.tool.route;
       if (k === 'e') startExam();
+      if (k.startsWith('m:')) { const m = k.slice(2); startSession({ title: { listen: 'Écouter', write: 'Écrire', speak: 'Parler' }[m], items: pickItems(allOf(m), 10), back: R() }); }
     }));
   }
 
   /* ================= COURS ================= */
   function pageCours() {
     const S = subj();
-    let h = '<div class="page"><div class="kicker">' + esc(S.title) + '</div><h1>Cours</h1><p class="muted">' + (SUBJ === 'linux' ? '4 chapitres : chaque cours est accompagné de son TP. Lis les fiches, apprends les commandes, puis mets-les en pratique dans le terminal simulé.' : chs().length + ' chapitres de théorie de base. Pour chacun : fiches, formulaire, quiz, exercices où tu tapes les formules, et calculs générés à l\'infini.') + '</p><div class="grid" style="margin-top:18px">';
+    let h = '<div class="page"><div class="kicker">' + esc(S.title) + '</div><h1>Cours</h1><p class="muted">' + (SUBJ === 'linux' ? '4 chapitres : chaque cours est accompagné de son TP. Lis les fiches, apprends les commandes, puis mets-les en pratique dans le terminal simulé.' : SUBJ === 'anglais' ? chs().length + ' chapitres progressifs pour débuter. Pour chacun : des fiches à écouter (clique sur l\'anglais pour l\'entendre), le vocabulaire, des QCM, des exercices à l\'écoute, à l\'écrit et à l\'oral.' : chs().length + ' chapitres de théorie de base. Pour chacun : fiches, formulaire, quiz, exercices où tu tapes les formules, et calculs générés à l\'infini.') + '</p><div class="grid" style="margin-top:18px">';
     for (const c of chs()) {
       const s = P.chapterStats(c);
       const ms = APP.missions.filter((m) => m.chapter === c.id);
       h += '<div class="card ch-card" data-ch="' + c.id + '"><div class="spread"><div class="row" style="flex-wrap:nowrap"><span class="chip-ch">' + c.num + '</span><div><h2 style="margin:0">' + esc(c.title) + '</h2><div class="muted small">' + esc(c.subtitle) + '</div></div></div><b style="font-size:1.3rem">' + pct(s.total) + '%</b></div><div class="bar" style="margin:12px 0"><i style="width:' + pct(s.total) + '%"></i></div>';
-      h += '<div class="grid g4 small"><div><b>' + s.read + '/' + s.secs + '</b><div class="muted">fiches lues</div></div><div><b>' + pct(s.mq) + '%</b><div class="muted">quiz maîtrisés</div></div><div><b>' + pct(s.mx) + '%</b><div class="muted">exercices maîtrisés</div></div><div>' + (ms.length ? '<b>' + s.mDone + '/' + ms.length + '</b><div class="muted">TP réussis</div>' : '<b>' + pct(s.mc) + '%</b><div class="muted">formules sues</div>') + '</div></div>';
-      h += '<div class="row" style="margin-top:14px"><a class="btn sm" href="#/ch/' + c.id + '">Ouvrir</a><a class="btn sm ghost" href="#/ch/' + c.id + '/quiz">Quiz</a><a class="btn sm ghost" href="#/ch/' + c.id + '/exos">' + esc(S.exo.label) + '</a>' + (ms.length ? '<a class="btn sm ghost" href="#/ch/' + c.id + '/tp">TP pratiques</a>' : '<a class="btn sm ghost" href="#/ch/' + c.id + '/formules">Formulaire</a>') + '</div></div>';
+      h += '<div class="grid g4 small"><div><b>' + s.read + '/' + s.secs + '</b><div class="muted">fiches lues</div></div><div><b>' + pct(s.mq) + '%</b><div class="muted">quiz maîtrisés</div></div><div><b>' + pct(s.mx) + '%</b><div class="muted">exercices maîtrisés</div></div><div>' + (ms.length ? '<b>' + s.mDone + '/' + ms.length + '</b><div class="muted">TP réussis</div>' : '<b>' + pct(s.mc) + '%</b><div class="muted">' + (c.subject === 'anglais' ? 'cartes sues' : 'formules sues') + '</div>') + '</div></div>';
+      h += '<div class="row" style="margin-top:14px"><a class="btn sm" href="#/ch/' + c.id + '">Ouvrir</a><a class="btn sm ghost" href="#/ch/' + c.id + '/quiz">Quiz</a><a class="btn sm ghost" href="#/ch/' + c.id + '/exos">' + esc(S.exo.label) + '</a>' + (ms.length ? '<a class="btn sm ghost" href="#/ch/' + c.id + '/tp">TP pratiques</a>' : c.subject === 'anglais' ? '<a class="btn sm ghost" href="#/ch/' + c.id + '/oral">Parler</a>' : '<a class="btn sm ghost" href="#/ch/' + c.id + '/formules">Formulaire</a>') + '</div></div>';
     }
     main.innerHTML = h + '</div></div>';
   }
@@ -218,9 +231,14 @@
     const tabs = [['fiches', 'Fiches (' + c.sections.length + ')']];
     if (c.commands.length) tabs.push(['commandes', 'Commandes (' + c.commands.length + ')']);
     if (c.formulas.length) tabs.push(['formules', 'Formulaire (' + c.formulas.length + ')']);
-    tabs.push(['quiz', 'Quiz (' + c.quiz.length + ')'], ['exos', S.exo.label + ' (' + c.exercises.length + ')']);
+    const en = c.subject === 'anglais';
+    const poolFor = (t) => (en ? (t === 'quiz' ? MODES.choice(c).concat(MODES.listen(c)) : t === 'oral' ? MODES.speak(c) : MODES.write(c)) : t === 'quiz' ? c.quiz : c.exercises);
+    if (en && (c.words.length || c.phrases.length)) tabs.push(['vocab', 'Vocabulaire (' + (c.words.length + c.phrases.length) + ')']);
+    if (en && c.verbs) tabs.push(['vocab', 'Tableau (' + c.verbs.length + ' verbes)']);
+    tabs.push(['quiz', (en ? 'QCM et écoute' : 'Quiz') + ' (' + poolFor('quiz').length + ')'], ['exos', S.exo.label + ' (' + poolFor('exos').length + ')']);
+    if (en) tabs.push(['oral', 'Parler (' + poolFor('oral').length + ')']);
     const gens = gensOf(c.subject, c.id);
-    if (gens.length) tabs.push(['calculs', 'Calculs (∞)']);
+    if (gens.length) tabs.push(['calculs', (en ? 'Exercices générés' : 'Calculs') + ' (∞)']);
     const nm = APP.missions.filter((m) => m.chapter === c.id).length;
     if (nm) tabs.push(['tp', 'TP pratiques (' + nm + ')']);
     let h = '<div class="page" data-ch="' + c.id + '"><div class="row" style="flex-wrap:nowrap;gap:14px"><span class="chip-ch" style="width:46px;height:46px;font-size:1.2rem">' + c.num + '</span><div style="flex:1;min-width:0"><div class="kicker">' + esc(S.short) + ' · ' + esc(c.subtitle) + '</div><h1 style="margin:0">' + esc(c.title) + '</h1></div><b style="font-size:1.4rem">' + pct(s.total) + '%</b></div>';
@@ -235,16 +253,18 @@
       h += '<div class="spread" style="margin-bottom:12px"><p class="muted" style="margin:0">Toutes les commandes du cours et du TP. Clique « Essayer » pour la tester dans le terminal.</p><button class="btn sm" id="flashBtn">' + icon('flash') + ' Flashcards du chapitre</button></div><div class="card flat" style="padding:0">' + c.commands.map((x) => cmdCard(x)).join('') + '</div>';
     } else if (tab === 'formules') {
       h += '<div class="spread" style="margin-bottom:12px"><p class="muted" style="margin:0">Toutes les formules du chapitre, à connaître par cœur.</p><button class="btn sm" id="flashBtn">' + icon('flash') + ' Les réviser en flashcards</button></div><div class="card flat" style="padding:0">' + c.formulas.map((x) => formulaCard(x)).join('') + '</div>';
-    } else if (tab === 'quiz' || tab === 'exos') {
-      const pool = tab === 'quiz' ? c.quiz : c.exercises;
+    } else if (tab === 'vocab') {
+      h += '<div class="spread" style="margin-bottom:12px"><p class="muted" style="margin:0">Clique sur un mot pour l\'entendre.</p><button class="btn sm" id="flashBtn">' + icon('flash') + ' Flashcards du chapitre</button></div>' + vocabHtml(c, '');
+    } else if (tab === 'quiz' || tab === 'exos' || tab === 'oral') {
+      const pool = poolFor(tab);
       const lv = { new: 0, weak: 0, learn: 0, master: 0 };
       for (const x of pool) lv[P.level(x.id)]++;
       const errs = pool.filter((x) => st.items[x.id] && st.items[x.id].ko > 0 && st.items[x.id].box <= 2).length;
       h += '<div class="card"><div class="grid g4 small" style="margin-bottom:14px"><div><span class="lvl new"></span><b>' + lv.new + '</b> jamais vus</div><div><span class="lvl weak"></span><b>' + lv.weak + '</b> à revoir</div><div><span class="lvl learn"></span><b>' + lv.learn + '</b> en cours</div><div><span class="lvl master"></span><b>' + lv.master + '</b> maîtrisés</div></div>';
       h += '<div class="row"><button class="btn" data-start="smart">Session de 10 (intelligente)</button><button class="btn ghost" data-start="all">Tout (' + pool.length + ', mélangé)</button>' + (errs ? '<button class="btn ghost" data-start="errors">' + icon('redo') + ' Mes erreurs (' + errs + ')</button>' : '') + '</div>';
-      h += '<p class="muted small" style="margin:12px 0 0">' + (tab === 'quiz' ? 'Chaque mauvaise réponse est expliquée : pourquoi elle est fausse et pourquoi la bonne est juste.' : esc(S.exo.desc)) + '</p></div>';
-      h += '<div class="section-title"><h2>' + (tab === 'quiz' ? 'Questions' : 'Exercices') + '</h2></div><div class="card flat" style="padding:0">';
-      pool.forEach((x) => { h += '<div class="mission-item" style="cursor:pointer" data-one="' + x.id + '"><span class="lvl ' + P.level(x.id) + '"></span><span style="flex:1;min-width:0">' + md(tab === 'quiz' ? x.q : x.prompt) + '</span><span class="pill">' + (x.level === 3 ? 'difficile' : x.level === 2 ? 'moyen' : 'facile') + '</span></div>'; });
+      h += '<p class="muted small" style="margin:12px 0 0">' + (tab === 'oral' ? 'Appuie sur le micro et parle : l\'appli vérifie ta prononciation. Tu peux écouter le modèle avant.' : tab === 'quiz' ? 'Chaque mauvaise réponse est expliquée : pourquoi elle est fausse et pourquoi la bonne est juste.' : esc(S.exo.desc)) + '</p></div>';
+      h += '<div class="section-title"><h2>' + (tab === 'quiz' ? 'Questions' : 'Exercices') + '</h2>' + (pool.length > 80 ? '<span class="muted small">80 premiers sur ' + pool.length + '</span>' : '') + '</div><div class="card flat" style="padding:0">';
+      pool.slice(0, 80).forEach((x) => { h += '<div class="mission-item" style="cursor:pointer" data-one="' + x.id + '"><span class="lvl ' + P.level(x.id) + '"></span><span style="flex:1;min-width:0">' + md(x.mode === 'listen' ? x.q + ' (' + (x.say || '') + ')' : x.mode === 'speak' && x.show === 'en' ? 'Répète : ' + (x.say || '') : tab === 'quiz' ? x.q : x.prompt) + '</span><span class="pill">' + (x.level >= 3 ? 'difficile' : x.level === 2 ? 'moyen' : 'facile') + '</span></div>'; });
       h += '</div>';
     } else if (tab === 'calculs') {
       h += '<p class="muted">Exercices générés aléatoirement : il y en a toujours de nouveaux. Idéal pour l\'entraînement quotidien.</p><div class="grid g2">';
@@ -262,8 +282,9 @@
     }
     main.innerHTML = h + '</div>';
     if (math) mathify(main);
+    if (en) mountSay(main);
     if ($('#flashBtn')) $('#flashBtn').onclick = () => startSession({ title: 'Flashcards — ' + c.title, items: pickItems(c.cards, 15), back: '#/ch/' + c.id + '/' + tab });
-    $$('[data-start]').forEach((b) => (b.onclick = () => { const pool = tab === 'quiz' ? c.quiz : c.exercises; const mode = b.dataset.start; startSession({ title: (tab === 'quiz' ? 'Quiz' : S.exo.label) + ' — ' + c.title, items: pickItems(pool, mode === 'all' ? pool.length : 10, mode), back: '#/ch/' + c.id + '/' + tab }); }));
+    $$('[data-start]').forEach((b) => (b.onclick = () => { const pool = poolFor(tab); const mode = b.dataset.start; startSession({ title: (tab === 'quiz' ? (en ? 'QCM et écoute' : 'Quiz') : tab === 'oral' ? 'Parler' : S.exo.label) + ' — ' + c.title, items: pickItems(pool, mode === 'all' ? pool.length : 10, mode), back: '#/ch/' + c.id + '/' + tab }); }));
     $$('[data-one]').forEach((b) => (b.onclick = () => startSession({ title: 'Question', items: [findItem(b.dataset.one)], back: '#/ch/' + c.id + '/' + tab })));
     $$('[data-g]').forEach((b) => (b.onclick = () => startGen(b.dataset.g, '#/ch/' + c.id + '/calculs')));
     bindTry(main);
@@ -303,10 +324,10 @@
     const prev = c.sections[i - 1], next = c.sections[i + 1];
     let h = '<div class="page" data-ch="' + c.id + '" style="max-width:840px"><a href="#/ch/' + c.id + '" class="small">← ' + esc(c.title) + '</a><div class="kicker" style="margin-top:10px">Fiche ' + (i + 1) + ' / ' + c.sections.length + (s.src ? ' · ' + esc(s.src) : '') + '</div><h1>' + esc(s.title) + '</h1>';
     h += '<article class="fiche' + (math ? ' math' : '') + '">' + s.html + '</article><div id="endMark"></div>';
-    h += '<p class="muted small">' + (math ? 'Astuce : entraîne-toi juste après la lecture avec les exercices « Tape la formule » du chapitre.' : 'Astuce : clique sur une commande d\'un bloc de code pour l\'essayer dans le terminal simulé.') + '</p>';
+    h += '<p class="muted small">' + (math ? 'Astuce : entraîne-toi juste après la lecture avec les exercices « Tape la formule » du chapitre.' : c.subject === 'anglais' ? 'Astuce : clique sur chaque mot ou phrase en anglais pour l\'entendre, et répète à voix haute.' : 'Astuce : clique sur une commande d\'un bloc de code pour l\'essayer dans le terminal simulé.') + '</p>';
     h += '<div class="fiche-nav">' + (prev ? '<a class="btn ghost" href="#/fiche/' + c.id + '/' + prev.id + '">← ' + esc(prev.title.slice(0, 40)) + '</a>' : '<span></span>') + (next ? '<a class="btn" id="nextSec" href="#/fiche/' + c.id + '/' + next.id + '">' + esc(next.title.slice(0, 40)) + ' →</a>' : '<button class="btn" id="endCh">Tester le chapitre</button>') + '</div></div>';
     main.innerHTML = h;
-    if (math) mathify($('.fiche')); else { decorateCode(main); bindTry(main); }
+    if (math) mathify($('.fiche')); else if (c.subject === 'anglais') mountSay(main); else { decorateCode(main); bindTry(main); }
     const mark = () => { if (!P.state().sections[s.id]) P.markSection(s.id); };
     const io = new IntersectionObserver((en) => { if (en.some((e) => e.isIntersecting)) { mark(); io.disconnect(); } });
     io.observe($('#endMark'));
@@ -329,6 +350,7 @@
     const pool = allOf('quiz').concat(allOf('exo'));
     const cards = allOf('card').filter((x) => P.isDue(x.id));
     let items = pickItems(pool, Math.max(8, goal - Math.min(cards.length, 6))).concat(cards.slice(0, 6));
+    if (isEn()) { let k = 0; items = items.filter((x) => x.mode !== 'speak' || k++ < 3); }
     if (gensOf().length) for (let k = 0; k < 3; k++) items.push(APP.genRandom(SUBJ));
     startSession({ title: 'Révision du jour — ' + subj().short, items: U.shuffle(items), back: R() + '/entrainement' });
   }
@@ -341,33 +363,46 @@
   function startGen(type, back) {
     const items = [];
     for (let k = 0; k < 10; k++) items.push(type === 'mix' ? APP.genRandom(SUBJ) : APP.genQuestion(type));
-    startSession({ title: type === 'mix' ? 'Calculs express' : APP.generators[type].label, items, back: back || R() + '/entrainement', gen: type });
+    startSession({ title: type === 'mix' ? (isEn() ? 'Conjugaison express' : 'Calculs express') : APP.generators[type].label, items, back: back || R() + '/entrainement', gen: type });
   }
   function itemKind(it) {
+    if (it.subject === 'anglais' && it.kind !== 'card') {
+      const m = it.mode || (it.kind === 'quiz' ? 'choice' : 'write');
+      return m === 'choice' ? 'qcm' : m === 'listen' ? 'elisten' : m === 'speak' ? 'espeak' : m === 'dictee' ? 'edictee' : 'ewrite';
+    }
     if (it.kind === 'gen') return it.type === 'formula' ? 'mexo' : it.type === 'qcm' ? 'qcm' : 'input';
     if (it.kind === 'quiz') return it.type === 'input' ? 'input' : 'qcm';
     if (it.kind === 'exo') return it.subject === 'maths' ? 'mexo' : 'exo';
     return 'card';
   }
-  const KLABEL = { qcm: 'QCM', input: 'Réponse courte', exo: 'Tape la commande', mexo: 'Tape la formule', card: 'Flashcard' };
+  const KLABEL = { qcm: 'QCM', input: 'Réponse courte', exo: 'Tape la commande', mexo: 'Tape la formule', card: 'Flashcard', elisten: 'Écoute', ewrite: 'Écrire', edictee: 'Dictée', espeak: 'Oral' };
   function pageSession() {
     if (!S) { location.hash = R() + '/entrainement'; return; }
     if (S.i >= S.items.length) return renderSummary();
     const it = S.items[S.i];
+    if (it.prep) it.prep();
     const k = itemKind(it);
     const math = isMath(it) || it.subject === 'maths';
+    const en = it.subject === 'anglais';
     const ch = it.chapter ? chOf(it.chapter) : null;
     const total = S.items.length;
     let h = '<div class="page"><div class="sess"><div class="sess-top"><a class="btn sm ghost" href="' + S.back + '">✕</a><div class="bar"><i style="width:' + (S.i / total) * 100 + '%"></i></div><span class="small muted">' + (S.i + 1) + '/' + total + '</span>' + (S.limit ? '<span class="pill warn" id="timer"></span>' : '') + '</div>';
     const gch = !ch && it.chapter ? chOf(it.chapter) : null;
     const cch = ch || gch;
     const topic = it.topic || (it.gen && APP.generators[it.gen] ? APP.generators[it.gen].label : '');
-    h += '<div class="qcard" data-ch="' + (it.chapter || '') + '"><div class="qtheme">' + (cch ? '<span class="qt-ch">' + (math ? 'Maths' : 'Linux') + ' · ' + cch.num + '. ' + esc(cch.title) + '</span>' : '') + (topic ? '<span class="qt-sep">›</span><span class="qt-topic">' + esc(topic) + '</span>' : '') + '</div><div class="qmeta">' + (S.exam ? '<span class="pill warn">Examen</span>' : '') + (it.kind === 'gen' ? '<span class="pill acc">Calcul généré</span>' : '') + '<span class="pill acc">' + KLABEL[k] + '</span>' + (it.src ? '<span class="pill">' + esc(it.src) + '</span>' : '') + (it.level === 3 ? '<span class="pill ko">difficile</span>' : it.level === 2 ? '<span class="pill warn">moyen</span>' : '') + '</div>';
+    h += '<div class="qcard" data-ch="' + (it.chapter || '') + '"><div class="qtheme">' + (cch ? '<span class="qt-ch">' + esc((APP.subject(cch.subject) || {}).short || '') + ' · ' + cch.num + '. ' + esc(cch.title) + '</span>' : '') + (topic ? '<span class="qt-sep">›</span><span class="qt-topic">' + esc(topic) + '</span>' : '') + '</div><div class="qmeta">' + (S.exam ? '<span class="pill warn">Examen</span>' : '') + (it.kind === 'gen' ? '<span class="pill acc">' + (it.subject === 'anglais' ? 'Exercice généré' : 'Calcul généré') + '</span>' : '') + '<span class="pill acc">' + KLABEL[k] + '</span>' + (it.src ? '<span class="pill">' + esc(it.src) + '</span>' : '') + (it.level === 3 ? '<span class="pill ko">difficile</span>' : it.level === 2 ? '<span class="pill warn">moyen</span>' : '') + '</div>';
     if (k === 'qcm') {
       const order = it.choices.map((c, i) => i);
       const shuf = !it.choices.some((c) => /toutes|aucune|les deux|A et B/i.test(c)) && !it.gen;
       const ord = shuf ? U.shuffle(order) : order;
       h += '<div class="qtext">' + md(it.q) + '</div><div class="choices">' + ord.map((oi, n) => '<button class="choice" data-o="' + oi + '"><span class="k">' + (n + 1) + '</span><span>' + md(it.choices[oi]) + '</span></button>').join('') + '</div>';
+    } else if (k === 'elisten') {
+      h += '<div class="qtext">' + md(it.q) + '</div><div class="listen"><button class="btn play" id="playB">' + icon('speaker') + ' Écouter</button><button class="btn ghost" id="slowB">Lentement</button></div><div class="choices">' + U.shuffle(it.choices.map((c, i) => i)).map((oi, n) => '<button class="choice" data-o="' + oi + '"><span class="k">' + (n + 1) + '</span><span>' + md(it.choices[oi]) + '</span></button>').join('') + '</div>';
+    } else if (k === 'ewrite' || k === 'edictee') {
+      h += '<div class="qtext">' + md(it.prompt || it.q) + '</div>' + (k === 'edictee' ? '<div class="listen"><button class="btn play" id="playB" type="button">' + icon('speaker') + ' Écouter</button><button class="btn ghost" id="slowB" type="button">Lentement</button></div>' : '') + '<form class="ansin en-in" id="ansF"><input class="field" id="ans" lang="en" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + esc(it.placeholder || 'en anglais…') + '"><button class="btn">Valider</button></form>' + (!S.exam && it.hint ? '<div class="row" style="margin-top:10px"><button class="btn sm ghost" id="hintB">Indice</button></div><div id="hintBox"></div>' : '');
+    } else if (k === 'espeak') {
+      const showEn = it.show === 'en';
+      h += '<div class="qtext">' + md(it.prompt) + '</div>' + (showEn ? '<div class="en-big say" data-say="' + esc(it.say || it.answers[0]) + '">' + esc(it.answers[0]) + '</div>' : '') + '<div class="speak"><button class="mic" id="micB" aria-label="Parler">' + icon('mic') + '</button><div id="micS" class="small muted">' + (EN().canListen() ? 'Appuie sur le micro, puis parle.' : 'La reconnaissance vocale n\'est pas disponible sur ce navigateur : dis la phrase à voix haute, écoute le modèle et évalue-toi.') + '</div><div class="row" style="justify-content:center"><button class="btn sm ghost" id="modelB" type="button">' + icon('speaker') + ' Écouter le modèle</button>' + (EN().canListen() ? '' : '<button class="btn sm" id="selfB" type="button">Je l\'ai dit</button>') + '</div></div>';
     } else if (k === 'input') {
       h += '<div class="qtext">' + md(it.q) + '</div><form class="ansin" id="ansF"><input class="field" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(it.placeholder || 'Ta réponse') + '"><button class="btn">Valider</button></form>';
     } else if (k === 'exo') {
@@ -378,18 +413,19 @@
       h += '<div class="qtext">' + md(it.prompt || it.q) + '</div>' + (it.context ? '<div class="qctx">' + md(it.context) + '</div>' : '');
       h += '<form class="mathin" id="ansF"><div class="mrow"><input id="ans" class="field mono" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Ta formule" placeholder="' + esc(it.placeholder || (vars.includes('x') ? 'ex. 2*x*sin(x) + x^2*cos(x)' : 'ex. sqrt(3)/2')) + '"><button class="btn">Valider</button></div><div class="mprev" id="mprev"><span class="muted small">Attendu : ' + esc(what) + (it.form === 'expanded' ? ' (forme développée)' : it.form === 'factored' ? ' (forme factorisée)' : '') + '</span></div><div id="kpad"></div></form>' + (!S.exam && it.hint ? '<div class="row" style="margin-top:10px"><button class="btn sm ghost" id="hintB">Indice</button><button class="btn sm ghost" id="syntB">Aide syntaxe</button></div><div id="hintBox"></div>' : '<div class="row" style="margin-top:10px"><button class="btn sm ghost" id="syntB">Aide syntaxe</button></div><div id="hintBox"></div>');
     } else {
-      const cmd = it.kind === 'cmd', fo = it.kind === 'formula';
-      const front = cmd ? '<div class="lbl">Commande</div><div class="face"><code style="font-size:1.1rem">' + esc(it.cmd) + '</code>' + (it.syntax ? '<div class="muted small" style="margin-top:8px"><code>' + esc(it.syntax) + '</code></div>' : '') + '<p class="muted small" style="margin-top:14px">Que fait-elle ? Quelles options importantes ?</p></div>'
+      const cmd = it.kind === 'cmd', fo = it.kind === 'formula', ecard = !!it.say;
+      const front = ecard ? '<div class="lbl">En anglais ?</div><div class="face"><b>' + md(it.front) + '</b><p class="muted small" style="margin-top:14px">Dis-le à voix haute, puis retourne la carte pour vérifier et écouter.</p></div>' : cmd ? '<div class="lbl">Commande</div><div class="face"><code style="font-size:1.1rem">' + esc(it.cmd) + '</code>' + (it.syntax ? '<div class="muted small" style="margin-top:8px"><code>' + esc(it.syntax) + '</code></div>' : '') + '<p class="muted small" style="margin-top:14px">Que fait-elle ? Quelles options importantes ?</p></div>'
         : fo ? '<div class="lbl">Formule</div><div class="face"><b>' + esc(it.name) + '</b><p class="muted small" style="margin-top:14px">Écris-la de tête (sur papier), puis retourne la carte.</p></div>'
           : '<div class="lbl">Notion</div><div class="face"><b>' + md(it.front) + '</b><p class="muted small" style="margin-top:14px">Explique-la de tête, puis retourne la carte.</p></div>';
-      const back = cmd ? '<div class="face back" style="text-align:left">' + md(it.desc || '') + (it.details ? '<p class="muted small">' + md(it.details) + '</p>' : '') + (it.example ? '<div class="fb ok" style="margin-top:8px;padding:8px 10px"><code>$ ' + esc(it.example) + '</code></div>' : '') + '</div>'
+      const back = ecard ? '<div class="face back"><div class="lbl">' + md(it.front) + '</div><div class="en-big">' + esc(it.back) + '</div>' + sayBtn(it.say, 'Écouter') + (it.ex ? '<p class="muted small" style="margin-top:12px"><i>' + esc(it.ex) + '</i>' + (it.exFr ? ' — ' + esc(it.exFr) : '') + ' ' + sayBtn(it.ex) + '</p>' : '') + (it.note ? '<p class="muted small">' + md(it.note) + '</p>' : '') + '</div>' : cmd ? '<div class="face back" style="text-align:left">' + md(it.desc || '') + (it.details ? '<p class="muted small">' + md(it.details) + '</p>' : '') + (it.example ? '<div class="fb ok" style="margin-top:8px;padding:8px 10px"><code>$ ' + esc(it.example) + '</code></div>' : '') + '</div>'
         : fo ? '<div class="face back"><div class="lbl">' + esc(it.name) + '</div><div class="nomath">' + APP.tex(it.tex, true) + '</div>' + (it.note ? '<p class="muted small">' + md(it.note) + '</p>' : '') + '</div>'
           : '<div class="face back" style="text-align:left">' + md(it.back) + '</div>';
       h += '<div class="flash" id="flashC"><div>' + front + '</div></div><div id="flashBack" class="hidden">' + back + '</div><div id="flashAct"><button class="btn block" id="flipB">Retourner la carte</button></div>';
     }
-    h += '<div id="fb"></div></div><div class="sess-actions"><span class="small muted">' + esc(S.title) + '</span><span class="small muted">' + (k === 'qcm' ? 'Touches 1-' + (it.choices ? it.choices.length : 4) + ' pour répondre' : k === 'mexo' ? 'Entrée pour valider' : '') + '</span></div></div></div>';
+    h += '<div id="fb"></div></div><div class="sess-actions"><span class="small muted">' + esc(S.title) + '</span><span class="small muted">' + (k === 'qcm' || k === 'elisten' ? 'Touches 1-' + (it.choices ? it.choices.length : 4) + ' pour répondre' : k === 'mexo' || k === 'ewrite' || k === 'edictee' ? 'Entrée pour valider' : '') + '</span></div></div></div>';
     main.innerHTML = h;
     if (math) mathify($('.qcard'));
+    if (en) mountSay($('.qcard'));
     if (S.limit) {
       const tick = () => { const left = S.limit - Math.floor((Date.now() - S.start) / 1000); const t = $('#timer'); if (!t) return; if (left <= 0) { clearInterval(iv); S.i = S.items.length; route(); return; } t.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0'); };
       const iv = setInterval(tick, 1000); tick();
@@ -398,9 +434,10 @@
     const next = () => { S.i++; pageSession(); window.scrollTo(0, 0); };
     const record = (ok, answer, extra) => { S.results.push(Object.assign({ it, ok, answer }, extra || {})); P.record(it.id, ok, { answer, subject: it.subject || S.subject }); };
     const contBtn = (label) => '<div class="row" style="margin-top:14px;justify-content:flex-end"><button class="btn" id="contB">' + (label || (S.i + 1 < S.items.length ? 'Continuer' : 'Voir le bilan')) + ' →</button></div>';
-    const showFb = (html) => { const fb = $('#fb'); fb.innerHTML = html; if (math) mathify(fb); bindTry(fb); bindSheets(fb); const b = $('#contB'); if (b) { b.onclick = next; setTimeout(() => b.focus(), 30); } };
+    const showFb = (html) => { const fb = $('#fb'); fb.innerHTML = html; if (math) mathify(fb); if (en) mountSay(fb); bindTry(fb); bindSheets(fb); const b = $('#contB'); if (b) { b.onclick = next; setTimeout(() => b.focus(), 30); } };
+    const sayIt = (t) => { if (en && t && P.setting('enAuto') !== false) setTimeout(() => EN().say(t), 150); };
     const keyH = (e) => {
-      if (k === 'qcm' && /^[1-9]$/.test(e.key) && !$('.choice:disabled')) { const b = $$('.choice')[+e.key - 1]; if (b) b.click(); }
+      if ((k === 'qcm' || k === 'elisten') && /^[1-9]$/.test(e.key) && !$('.choice:disabled')) { const b = $$('.choice')[+e.key - 1]; if (b) b.click(); }
       else if (e.key === 'Enter' && $('#contB') && document.activeElement !== $('#contB') && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#contB').click(); }
     };
     document.addEventListener('keydown', keyH);
@@ -409,14 +446,79 @@
     if ($('#hintB')) $('#hintB').onclick = () => { $('#hintBox').innerHTML = '<div class="hintbox">' + md(it.hint) + '</div>'; if (math) mathify($('#hintBox')); $('#hintB').remove(); };
     if ($('#syntB')) $('#syntB').onclick = () => { $('#hintBox').innerHTML = '<div class="hintbox small">' + md(SYNTAX) + '</div>'; $('#syntB').remove(); };
 
-    if (k === 'qcm') {
+    if (k === 'elisten') {
+      const play = (r) => EN().say(it.say, r);
+      $('#playB').onclick = () => play(); $('#slowB').onclick = () => play(0.6);
+      setTimeout(() => play(), 250);
+    }
+    if (k === 'qcm' || k === 'elisten') {
       $$('.choice').forEach((b) => (b.onclick = () => {
         const o = +b.dataset.o, ok = o === it.answer;
         record(ok, it.choices[o], { chosen: o });
         if (S.exam) { $$('.choice').forEach((x) => (x.disabled = true)); b.style.borderColor = 'var(--accent)'; setTimeout(next, 250); return; }
         $$('.choice').forEach((x) => { x.disabled = true; const xo = +x.dataset.o; if (xo === it.answer) x.classList.add('ok'); else if (xo === o) x.classList.add('ko'); });
         showFb(feedbackQcm(it, o) + contBtn());
+        if (en) sayIt(it.sayChoices ? it.choices[it.answer] : it.say);
       }));
+    } else if (k === 'ewrite' || k === 'edictee') {
+      const inp = $('#ans'); setTimeout(() => inp.focus(), 30);
+      if (k === 'edictee') { $('#playB').onclick = () => EN().say(it.say); $('#slowB').onclick = () => EN().say(it.say, 0.6); setTimeout(() => EN().say(it.say), 250); }
+      let attempts = 0;
+      $('#ansF').onsubmit = (e) => {
+        e.preventDefault();
+        const v = inp.value.trim(); if (!v) return;
+        const r = EN().check(it, v);
+        attempts++;
+        if (attempts === 1) record(r.ok, v, { res: r });
+        if (S.exam) return next();
+        const sol = () => '<div class="corr-ans"><b>Réponse attendue :</b> <span class="en-ans">' + EN().diffHtml(r) + '</span> ' + sayBtn(it.say || r.expected) + '</div>' + (it.answers.length > 1 ? '<div class="small muted">Aussi accepté : ' + it.answers.filter((a) => a !== r.expected).slice(0, 4).map((a) => '« ' + esc(a) + ' »').join(', ') + '</div>' : '') + correctionHtml(it, {});
+        if (r.ok) {
+          inp.disabled = true; $('#ansF button').disabled = true;
+          showFb('<div class="fb ok"><h4>✓ ' + (attempts > 1 ? 'Correct (au ' + attempts + 'e essai)' : 'Correct !') + '</h4>' + (r.notes.length ? '<ul>' + r.notes.map((n) => '<li>' + md(n) + '</li>').join('') + '</ul>' : '') + '<div class="corr-ans">' + esc(r.expected) + ' ' + sayBtn(it.say || r.expected) + '</div>' + correctionHtml(it, {}) + '</div>' + contBtn());
+          sayIt(it.say || r.expected);
+        } else wrongBox(Object.assign({}, r, { texUser: null }), inp, attempts, sol);
+      };
+    } else if (k === 'espeak') {
+      const st = $('#micS'), mic = $('#micB');
+      let tries = 0, done = false;
+      const model = it.say || it.answers[0];
+      $('#modelB').onclick = () => EN().say(model, 0.85);
+      const finish = (ok, heard, msgs) => {
+        if (done) return; done = true;
+        record(ok, heard || '(oral)', { heard });
+        mic.disabled = true;
+        showFb('<div class="fb ' + (ok ? 'ok' : 'ko') + '"><h4>' + (ok ? '✓ Bien prononcé !' : '✗ À retravailler') + '</h4>' + (heard ? '<div>J\'ai entendu : « ' + esc(heard) + ' »</div>' : '') + (msgs && msgs.length ? '<ul>' + msgs.map((m) => '<li>' + md(m) + '</li>').join('') + '</ul>' : '') + '<div class="corr-ans"><b>La phrase :</b> ' + esc(it.answers[0]) + ' ' + sayBtn(model) + '</div>' + correctionHtml(it, {}) + '</div>' + contBtn());
+        if (!ok) sayIt(model);
+      };
+      if ($('#selfB')) $('#selfB').onclick = () => {
+        $('#selfB').remove();
+        st.innerHTML = 'Compare avec le modèle :';
+        EN().say(model, 0.85);
+        $('#fb').innerHTML = '<div class="rate"><button class="btn danger" id="selfKo">Pas encore</button><button class="btn ok" id="selfOk">Je l\'ai bien dit</button></div>';
+        $('#selfOk').onclick = () => finish(true, '', []); $('#selfKo').onclick = () => finish(false, '', []);
+      };
+      mic.onclick = () => {
+        if (!EN().canListen()) { if ($('#selfB')) $('#selfB').click(); return; }
+        EN().stopSay();
+        mic.classList.add('on'); st.innerHTML = '<b>Je t\'écoute…</b> parle maintenant.';
+        EN().listen().then((alts) => {
+          mic.classList.remove('on');
+          if (!alts.length) { st.innerHTML = EN().listenError('no-speech'); return; }
+          tries++;
+          const r = EN().checkSpeech(it, alts);
+          if (r.ok) return finish(true, r.heard, []);
+          if (tries < 3) {
+            st.innerHTML = 'J\'ai entendu : « <b>' + esc(r.heard) + '</b> ». ' + md(r.msgs[0] || '') + ' <br>Essai ' + tries + ' / 3 : appuie de nouveau sur le micro.';
+            if (!$('#giveB')) { const b = document.createElement('button'); b.className = 'btn sm ghost'; b.id = 'giveB'; b.textContent = 'Voir la correction'; b.onclick = () => finish(false, r.heard, r.msgs); $('.speak .row').append(b); }
+            else $('#giveB').onclick = () => finish(false, r.heard, r.msgs);
+          } else finish(false, r.heard, r.msgs);
+        }).catch((err) => {
+          mic.classList.remove('on');
+          st.innerHTML = esc(EN().listenError(err)) + ' Tu peux t\'évaluer toi-même :';
+          if (!$('#selfB')) { const b = document.createElement('button'); b.className = 'btn sm'; b.id = 'selfB'; b.type = 'button'; b.textContent = 'Je l\'ai dit'; $('.speak .row').append(b); b.onclick = () => { b.remove(); EN().say(model, 0.85); $('#fb').innerHTML = '<div class="rate"><button class="btn danger" id="selfKo">Pas encore</button><button class="btn ok" id="selfOk">Je l\'ai bien dit</button></div>'; $('#selfOk').onclick = () => finish(true, '', []); $('#selfKo').onclick = () => finish(false, '', []); }; }
+        });
+      };
+      const prevC = cleanup; cleanup = () => { EN().stopListen(); EN().stopSay(); if (prevC) prevC(); };
     } else if (k === 'input') {
       const inp = $('#ans'); setTimeout(() => inp.focus(), 30);
       $('#ansF').onsubmit = (e) => {
@@ -480,6 +582,7 @@
       $('#flipB').onclick = $('#flashC').onclick = () => {
         $('#flashC').innerHTML = $('#flashBack').innerHTML;
         if (math) mathify($('#flashC'));
+        if (it.say) { mountSay($('#flashC')); EN().say(it.say); }
         $('#flashAct').innerHTML = '<p class="small muted" style="text-align:center;margin:12px 0 0">Tu la connaissais ?</p><div class="rate"><button class="btn danger" data-r="0">À revoir</button><button class="btn ghost" data-r="1">Difficile</button><button class="btn ok" data-r="2">Facile</button></div>';
         $('#flashC').onclick = null;
         $$('[data-r]').forEach((b) => (b.onclick = () => { const g = +b.dataset.r; P.rateCard(it.id, g); S.results.push({ it, ok: g > 0, card: true }); next(); }));
@@ -493,6 +596,7 @@
         inp.disabled = true; $('#ansF button').disabled = true;
         const sb = $('#solBox'); sb.innerHTML = solutionHtml() + contBtn();
         if (math) mathify(sb);
+        if (it.subject === 'anglais') mountSay(sb);
         bindSheets(sb);
         $('#retryB').remove(); $('#showB').remove();
         const b = $('#contB'); if (b) { b.onclick = next; setTimeout(() => b.focus(), 30); }
@@ -510,6 +614,7 @@
       h += '<div class="whybox"><b>Pourquoi « ' + md(it.choices[o]) + ' » est faux</b><div>' + (why ? md(why) : 'Ce n\'est pas ce que dit le cours.') + '</div></div>';
       h += '<div style="margin-top:8px"><b>Bonne réponse :</b> ' + md(it.choices[it.answer]) + '</div>';
     }
+    if (it.subject === 'anglais' && (it.say || it.sayChoices)) h += '<div class="corr-ans" style="margin-top:8px">' + (it.say ? '<span class="en-ans">' + esc(it.say) + '</span> ' : '') + sayBtn(it.sayChoices && !it.say ? it.choices[it.answer] : it.say, 'Écouter') + '</div>';
     h += correctionHtml(it, { showAnswer: false }) + '</div>';
     return h;
   }
@@ -555,14 +660,14 @@
     ov.innerHTML = '<div class="sheet" role="dialog" aria-modal="true"><div class="sheet-h"><b>' + esc(title) + '</b><button class="btn sm ghost" data-close>Fermer ✕</button></div><div class="sheet-b fiche' + (isMath ? ' math' : '') + '">' + html + '</div></div>';
     document.body.append(ov);
     const b = ov.querySelector('.sheet-b');
-    if (isMath) mathify(b); else decorateCode(b);
+    if (isMath === 'en') mountSay(b); else if (isMath) mathify(b); else decorateCode(b);
     const close = () => { ov.remove(); document.removeEventListener('keydown', esck, true); };
     const esck = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
     document.addEventListener('keydown', esck, true);
     ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-close]')) close(); });
   }
   function bindSheets(root) {
-    $$('[data-fiche]', root).forEach((b) => (b.onclick = () => { const [cid, sid] = b.dataset.fiche.split('|'); const c = chOf(cid); const s = c.sections.find((x) => x.id === sid); openSheet(c.title + ' — ' + s.title, s.html, c.subject === 'maths'); }));
+    $$('[data-fiche]', root).forEach((b) => (b.onclick = () => { const [cid, sid] = b.dataset.fiche.split('|'); const c = chOf(cid); const s = c.sections.find((x) => x.id === sid); openSheet(c.title + ' — ' + s.title, s.html, c.subject === 'anglais' ? 'en' : c.subject === 'maths'); }));
     $$('[data-forms]', root).forEach((b) => (b.onclick = () => { const c = chOf(b.dataset.forms); openSheet('Formules — ' + c.title, c.formulas.map((x) => formulaCard(x)).join(''), true); }));
   }
   function renderSummary() {
@@ -580,9 +685,12 @@
       h += '<div class="section-title"><h2>' + (S.exam ? 'Correction' : 'À retenir') + '</h2></div>';
       for (const r of (S.exam ? res : wrong)) {
         const it = r.it, k = itemKind(it);
-        h += '<div class="miss" style="border-color:' + (r.ok ? 'var(--ok)' : 'var(--ko)') + '"><div><b>' + md(it.q || it.prompt || '') + '</b></div>';
+        h += '<div class="miss" style="border-color:' + (r.ok ? 'var(--ok)' : 'var(--ko)') + '"><div><b>' + md(it.prompt || it.q || '') + '</b></div>';
         if (k === 'qcm') h += '<div class="small">Ta réponse : ' + md(it.choices[r.chosen] || '') + (r.ok ? ' ✓' : '<br>' + (it.why && it.why[r.chosen] ? '<span class="muted">' + md(it.why[r.chosen]) + '</span><br>' : '') + 'Bonne réponse : <b>' + md(it.choices[it.answer]) + '</b>') + '</div>';
         else if (k === 'exo') h += '<div class="small">Ta commande : <code>' + esc(r.answer) + '</code>' + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : <code>' + esc(it.answers[0]) + '</code>') + '</div>';
+        else if (k === 'ewrite' || k === 'edictee') h += '<div class="small">Ta réponse : « ' + esc(r.answer) + ' »' + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : <b>' + esc(it.answers[0]) + '</b>') + '</div>';
+        else if (k === 'espeak') h += '<div class="small">' + (r.heard ? 'Entendu : « ' + esc(r.heard) + ' »' : 'Auto-évaluation') + (r.ok ? ' ✓' : ' — phrase : <b>' + esc(it.answers[0]) + '</b>') + '</div>';
+        else if (k === 'elisten') h += '<div class="small">Phrase entendue : <b>' + esc(it.say) + '</b><br>Ta réponse : ' + md(it.choices[r.chosen] || '') + (r.ok ? ' ✓' : '<br>Bonne réponse : <b>' + md(it.choices[it.answer]) + '</b>') + '</div>';
         else if (k === 'mexo') h += '<div class="small">Ta réponse : ' + (r.res && r.res.texUser ? esc(r.res.texUser) : '<code>' + esc(r.answer) + '</code>') + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : ' + (r.res && r.res.texExpected ? esc(r.res.texExpected) : '<code>' + esc(it.answer) + '</code>')) + '</div>';
         else h += '<div class="small">Ta réponse : <code>' + esc(r.answer) + '</code>' + (r.ok ? ' ✓' : ' — attendu : <code>' + esc(it.accept[0]) + '</code>') + '</div>';
         if (!r.ok || S.exam) {
@@ -596,6 +704,7 @@
     h += '</div></div>';
     main.innerHTML = h;
     if (S.subject === 'maths') mathify(main);
+    if (S.subject === 'anglais') mountSay(main);
     bindSheets(main);
     if ($('#redoB')) $('#redoB').onclick = () => startSession({ title: 'Mes erreurs', items: U.shuffle(wrong.map((r) => (r.it.kind === 'gen' ? APP.genQuestion(r.it.gen) : r.it))), back: S.back });
     $('#againB').onclick = () => {
@@ -621,16 +730,17 @@
     let h = '<div class="page"><div class="kicker">' + esc(Sj.title) + '</div><h1>Entraînement</h1><p class="muted">La <b>répétition espacée</b> repropose chaque élément au bon moment : juste après une erreur, puis à 1, 3, 7, 16 et 35 jours quand tu réussis.</p>';
     h += '<div class="next" style="margin:18px 0"><div style="flex:1"><b style="font-size:1.08rem">Révision du jour</b><p>' + (due ? due + ' élément' + (due > 1 ? 's' : '') + ' à revoir + des nouveautés' : 'Un mélange adapté à ton niveau') + '</p></div><button class="btn" id="smartB">Commencer</button></div>';
     h += '<div class="card"><div class="spread"><b>Chapitres</b><div class="chips" id="chSel"><button data-c="*" class="' + (sel.length === chs().length ? 'on' : '') + '">Tous</button>' + chs().map((c) => '<button data-c="' + c.id + '" class="' + (sel.includes(c.id) && sel.length !== chs().length ? 'on' : '') + '" title="' + esc(c.title) + '">' + c.num + '</button>').join('') + '</div></div><div class="grid g3" style="margin-top:14px">';
-    const T = [['quiz', 'quiz', 'Quiz de cours', 'QCM avec l\'explication de chaque mauvaise réponse.'], ['exo', SUBJ === 'maths' ? 'sigma' : 'cmd', Sj.exo.label, Sj.exo.desc], ['card', 'flash', 'Flashcards', Sj.cards]];
+    const T = isEn() ? [['choice', 'quiz', 'QCM', 'Choisis la bonne réponse : vocabulaire, grammaire, conjugaison.'], ['listen', 'ear', 'Écouter', 'Écoute un mot ou une phrase et retrouve son sens (ou écris ce que tu entends).'], ['write', 'pen', 'Écrire', Sj.exo.desc], ['speak', 'mic', 'Parler', 'Dis le mot ou la phrase au micro : l\'appli vérifie ta prononciation.'], ['card', 'flash', 'Flashcards', Sj.cards]] : [['quiz', 'quiz', 'Quiz de cours', 'QCM avec l\'explication de chaque mauvaise réponse.'], ['exo', SUBJ === 'maths' ? 'sigma' : 'cmd', Sj.exo.label, Sj.exo.desc], ['card', 'flash', 'Flashcards', Sj.cards]];
     for (const [k, i, t, d] of T) h += '<div class="card flat qa"><span class="ico">' + icon(i) + '</span><b>' + esc(t) + '</b><span>' + esc(d) + '</span><div class="row" style="margin-top:8px"><button class="btn sm" data-t="' + k + '" data-n="10">10</button><button class="btn sm ghost" data-t="' + k + '" data-n="20">20</button><button class="btn sm ghost" data-t="' + k + '" data-n="999">Tout</button></div></div>';
     h += '</div></div>';
     h += '<div class="grid g2" style="margin-top:14px"><div class="card qa"><span class="ico">' + icon('clock') + '</span><b>Examen blanc</b><span>20 questions mélangées en 25 minutes. Correction détaillée à la fin.</span><div class="row" style="margin-top:8px"><button class="btn sm" id="examB">Lancer l\'examen</button></div></div>';
     h += '<div class="card qa"><span class="ico">' + icon('redo') + '</span><b>Mes erreurs</b><span>' + (errs.length ? errs.length + ' question' + (errs.length > 1 ? 's' : '') + ' ratée' + (errs.length > 1 ? 's' : '') + ' récemment.' : 'Aucune erreur en attente : bravo !') + '</span><div class="row" style="margin-top:8px"><button class="btn sm" id="errB" ' + (errs.length ? '' : 'disabled') + '>Les retravailler</button></div></div></div>';
     const gens = gensOf();
     if (gens.length) {
-      h += '<div class="section-title"><h2>Calculs & réflexes</h2><span class="muted small">exercices générés à l\'infini</span></div><div class="card"><div class="chips">';
+      h += '<div class="section-title"><h2>' + (isEn() ? 'Conjugaison & réflexes' : 'Calculs & réflexes') + '</h2><span class="muted small">exercices générés à l\'infini</span></div><div class="card"><div class="chips">';
       for (const [k, g] of gens) h += '<button data-g="' + k + '">' + esc(g.label) + '</button>';
       h += '</div><div class="row" style="margin-top:12px"><button class="btn sm" data-g="mix">' + icon('calc') + ' Mélange de tout</button></div></div>';
+      if (isEn() && !EN().canListen()) h += '<p class="muted small">Sur ce navigateur, la reconnaissance vocale n\'est pas disponible : les exercices « Parler » se font en auto-évaluation (tu écoutes le modèle et tu te notes).</p>';
     }
     h += '</div>';
     main.innerHTML = h;
@@ -645,7 +755,7 @@
       $$('#chSel button').forEach((x) => x.classList.toggle('on', x.dataset.c === '*' ? sel.length === chs().length : sel.includes(x.dataset.c) && sel.length !== chs().length));
     }));
     $('#smartB').onclick = startSmart;
-    $$('[data-t]').forEach((b) => (b.onclick = () => { const k = b.dataset.t, n = +b.dataset.n; const pool = allOf(k, sel); startSession({ title: { quiz: 'Quiz', exo: Sj.exo.label, card: 'Flashcards' }[k], items: pickItems(pool, Math.min(n, pool.length), n >= 999 ? 'all' : 'smart'), back: R() + '/entrainement' }); }));
+    $$('[data-t]').forEach((b) => (b.onclick = () => { const k = b.dataset.t, n = +b.dataset.n; const pool = allOf(k, sel); startSession({ title: { quiz: 'Quiz', exo: Sj.exo.label, card: 'Flashcards', choice: 'QCM', listen: 'Écouter', write: 'Écrire', speak: 'Parler' }[k], items: pickItems(pool, Math.min(n, pool.length), n >= 999 ? 'all' : 'smart'), back: R() + '/entrainement' }); }));
     $('#examB').onclick = () => startExam(sel);
     $('#errB').onclick = () => startSession({ title: 'Mes erreurs', items: U.shuffle(errs).slice(0, 20), back: R() + '/entrainement' });
     $$('[data-g]').forEach((b) => (b.onclick = () => startGen(b.dataset.g)));
@@ -729,6 +839,7 @@
       let out = '';
       for (const c of chs()) {
         if (filter !== 'all' && c.id !== filter) continue;
+        if (SUBJ === 'anglais') { const v = vocabHtml(c, tl); if (v) out += '<div class="section-title" data-ch="' + c.id + '"><h2><span class="chip-ch" style="width:30px;height:26px;font-size:.8rem;border-radius:8px;margin-right:8px">' + c.num + '</span>' + esc(c.title) + '</h2></div>' + v; continue; }
         const items = math ? c.formulas : c.commands;
         const list = items.filter((x) => !tl || U.norm(math ? [x.name, x.tex, x.note].join(' ') : [x.cmd, x.syntax, x.desc, x.details, x.example].join(' ')).includes(tl));
         if (!list.length) continue;
@@ -736,7 +847,7 @@
       }
       const box = $('#memoRes');
       box.innerHTML = out || '<div class="empty">Rien trouvé pour « ' + esc(t) + ' ».</div>';
-      if (math) mathify(box); else bindTry(box);
+      if (math) mathify(box); else if (SUBJ === 'anglais') mountSay(box); else bindTry(box);
     };
     $('#memoQ').oninput = render;
     $$('#memoCh button').forEach((b) => (b.onclick = () => { filter = b.dataset.c; $$('#memoCh button').forEach((x) => x.classList.toggle('on', x === b)); render(); }));
@@ -744,9 +855,47 @@
     setTimeout(() => $('#memoQ').focus(), 50);
   }
 
+  /* ================= ANGLAIS : vocabulaire et oral ================= */
+  function vocabHtml(c, q) {
+    const ok = (x) => !q || U.norm([x.en, x.fr, x.alt && x.alt.join(' ')].join(' ')).includes(q);
+    const W = (c.words || []).filter(ok), PH = (c.phrases || []).filter(ok);
+    const V = (c.verbs || []).filter((v) => !q || U.norm(v.join(' ')).includes(q));
+    let h = '';
+    if (W.length) h += '<div class="card flat vocab">' + W.map((w) => '<div class="voc"><span class="say voc-en" data-say="' + esc(w.en) + '">' + esc(w.en) + '</span><span class="voc-fr">' + esc(w.fr) + (w.note ? '<span class="muted small"> · ' + md(w.note) + '</span>' : '') + '</span>' + (w.ex ? '<span class="voc-ex say" data-say="' + esc(w.ex) + '">' + esc(w.ex) + '</span>' : '') + '</div>').join('') + '</div>';
+    if (PH.length) h += '<div class="section-title"><h3 style="margin:0">Phrases utiles</h3></div><div class="card flat vocab">' + PH.map((p) => '<div class="voc"><span class="say voc-en" data-say="' + esc(p.en) + '">' + esc(p.en) + '</span><span class="voc-fr">' + esc(p.fr) + '</span></div>').join('') + '</div>';
+    if (V.length) h += '<div class="card flat vocab">' + V.map((v) => '<div class="voc"><span class="say voc-en" data-say="' + esc(v[0] + ', ' + v[1].split('/')[0] + ', ' + v[2].split('/')[0]) + '">' + esc(v[0] + ' · ' + v[1].replace('/', ' / ') + ' · ' + v[2].replace('/', ' / ')) + '</span><span class="voc-fr">' + esc(v[3]) + '</span></div>').join('') + '</div>';
+    return h;
+  }
+  function pageOral() {
+    const E2 = EN();
+    const vs = E2.voices();
+    const all = chs('anglais').flatMap((c) => c.phrases || []);
+    let h = '<div class="page"><div class="kicker">Anglais</div><h1>Oral</h1><p class="muted">Écoute la prononciation de n\'importe quel texte, règle la voix, et entraîne-toi à parler.</p>';
+    h += '<div class="card"><b>Écouter un texte</b><form id="sayF" class="ansin en-in" style="margin-top:10px"><input class="field" id="sayT" lang="en" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(sessionStorage.getItem('oralT') || 'Hello, my name is Paul. Nice to meet you!') + '"><button class="btn">' + icon('speaker') + ' Écouter</button></form><div class="row" style="margin-top:10px"><button class="btn sm ghost" id="slowT">Lentement</button></div></div>';
+    h += '<div class="card" style="margin-top:14px"><b>Réglages de la voix</b><div class="grid g2" style="margin-top:10px"><label>Accent<select class="field" id="accS"><option value="gb">Britannique</option><option value="us">Américain</option></select></label><label>Vitesse<select class="field" id="rateS">' + [[0.7, 'Lente'], [0.9, 'Normale'], [1, 'Rapide']].map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') + '</select></label><label style="grid-column:1/-1">Voix<select class="field" id="voiceS"><option value="">Automatique</option>' + vs.map((v) => '<option value="' + esc(v.name) + '">' + esc(v.name + ' (' + v.lang + ')') + '</option>').join('') + '</select></label><label style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><input type="checkbox" id="autoS"> Lire automatiquement la bonne réponse après chaque exercice</label></div>' + (E2.canSpeak() ? (vs.length ? '' : '<p class="small muted">Aucune voix anglaise trouvée pour l\'instant : sur iPhone, Réglages › Accessibilité › Contenu énoncé › Voix › Anglais pour en télécharger une.</p>') : '<p class="small" style="color:var(--warn)">Ce navigateur ne sait pas lire le texte à voix haute.</p>') + '</div>';
+    h += '<div class="card" style="margin-top:14px"><b>Tester le micro</b><p class="muted small">' + (E2.canListen() ? 'Appuie sur le micro et dis une phrase en anglais : tu verras ce que l\'appli a compris.' : 'La reconnaissance vocale n\'est pas disponible sur ce navigateur (essaie Chrome, ou Safari sur iPhone avec Siri activé). Les exercices « Parler » se feront en auto-évaluation.') + '</p><div class="speak"><button class="mic" id="micT" aria-label="Tester le micro">' + icon('mic') + '</button><div id="micR" class="small muted"></div></div></div>';
+    h += '<div class="section-title"><h2>Répète après moi</h2><button class="btn sm" id="repB">' + icon('mic') + ' Session de 10 phrases</button></div><div class="card flat vocab">' + U.shuffle(all).slice(0, 12).map((p) => '<div class="voc"><span class="say voc-en" data-say="' + esc(p.en) + '">' + esc(p.en) + '</span><span class="voc-fr">' + esc(p.fr) + '</span></div>').join('') + '</div></div>';
+    main.innerHTML = h;
+    mountSay(main);
+    const txt = () => { const t = $('#sayT').value.trim(); sessionStorage.setItem('oralT', t); return t; };
+    $('#sayF').onsubmit = (e) => { e.preventDefault(); E2.say(txt()); };
+    $('#slowT').onclick = () => E2.say(txt(), 0.6);
+    $('#accS').value = E2.accent(); $('#accS').onchange = (e) => { P.setting('enAccent', e.target.value); P.setting('enVoice', ''); $('#voiceS').value = ''; E2.say('Hello! How are you?'); };
+    $('#rateS').value = String(P.setting('enRate') || 0.9); $('#rateS').onchange = (e) => { P.setting('enRate', +e.target.value); E2.say('This is my speed.'); };
+    $('#voiceS').value = P.setting('enVoice') || ''; $('#voiceS').onchange = (e) => { P.setting('enVoice', e.target.value); E2.say('Hello, this is my voice.'); };
+    $('#autoS').checked = P.setting('enAuto') !== false; $('#autoS').onchange = (e) => P.setting('enAuto', e.target.checked);
+    $('#micT').onclick = () => {
+      if (!E2.canListen()) return;
+      $('#micT').classList.add('on'); $('#micR').textContent = 'Je t\'écoute…';
+      E2.listen().then((alts) => { $('#micR').innerHTML = alts.length ? 'J\'ai compris : « <b>' + esc(alts[0]) + '</b> »' : esc(E2.listenError('no-speech')); }).catch((err) => { $('#micR').textContent = E2.listenError(err); }).finally(() => $('#micT').classList.remove('on'));
+    };
+    $('#repB').onclick = () => startSession({ title: 'Répète après moi', items: pickItems(allOf('speak').filter((x) => x.show === 'en'), 10), back: R() + '/oral' });
+    cleanup = () => { E2.stopListen(); E2.stopSay(); };
+  }
+
   /* ================= PROGRÈS ================= */
   function accuracyOf(s) {
-    const it = Object.entries(P.state().items).filter(([id]) => { const x = findItem(id); return x ? x.subject === s : (s === 'maths') === /^gen-m/.test(id); }).map(([, v]) => v);
+    const it = Object.entries(P.state().items).filter(([id]) => APP.subjectOfId(id) === s).map(([, v]) => v);
     const n = it.reduce((a, x) => a + x.n, 0), ok = it.reduce((a, x) => a + x.ok, 0);
     return n ? Math.round((ok / n) * 100) + '%' : '—';
   }

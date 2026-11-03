@@ -14,8 +14,10 @@
     APP.subjects.sort((a, b) => a.order - b.order);
   };
   APP.subject = (id) => APP.subjects.find((s) => s.id === id);
+  APP.chapterHooks = APP.chapterHooks || [];
   APP.registerChapter = function (ch) {
     ch.subject = ch.subject || 'linux';
+    for (const f of APP.chapterHooks) f(ch); // ex. anglais : mots, phrases et verbes → exercices
     ch.sections = ch.sections || [];
     ch.commands = ch.commands || [];
     ch.formulas = ch.formulas || [];
@@ -83,7 +85,13 @@
     d.n++; if (ok) d.ok++;
     if (subj) { d.by = d.by || {}; d.by[subj] = (d.by[subj] || 0) + 1; }
   }
-  const subjOfId = (id) => (/^(m\d+-|gen-m)/.test(id) ? 'maths' : 'linux');
+  APP.subjectOfId = (id) => {
+    if (/^gen-en-/.test(id)) return 'anglais';
+    if (/^gen-m-/.test(id)) return 'maths';
+    const c = APP.chapters.find((ch) => id.startsWith(ch.id + '-'));
+    return c ? c.subject : 'linux';
+  };
+  const subjOfId = (id) => APP.subjectOfId(id);
 
   // Enregistre une réponse. ok = bonne réponse du premier coup.
   P.record = function (id, ok, extra) {

@@ -1,7 +1,7 @@
 {
-  "name": "Révisions ESEO — Linux & Maths",
+  "name": "Révisions — Linux, Maths & Anglais",
   "short_name": "Révisions",
-  "description": "Révisions hors ligne : Administration Linux (terminal simulé, TP guidés) et Mathématiques (fiches, formulaire, exercices où l'on tape les formules).",
+  "description": "Révisions hors ligne : Administration Linux, Mathématiques et Anglais débutant (vocabulaire, conjugaison, écoute et oral).",
   "lang": "fr",
   "start_url": "./index.html",
   "scope": "./",

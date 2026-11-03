@@ -25,4 +25,15 @@
     cards: 'Formules et théorèmes : énonce-les de tête puis vérifie.',
     missions: false
   });
+  APP.registerSubject({
+    id: 'anglais', order: 3,
+    title: 'Anglais', short: 'Anglais', kicker: 'Débutant · vocabulaire, verbes, conjugaison',
+    desc: 'Le vocabulaire du quotidien, les verbes irréguliers et la conjugaison, avec des exercices écrits, à l\'oral (micro) et à l\'écoute.',
+    color: '#0d9488', badge: 'EN',
+    memo: { label: 'Vocabulaire', title: 'Vocabulaire', placeholder: 'Rechercher : maison, eat, family…' },
+    tool: { route: '#/s/anglais/oral', label: 'Oral', icon: 'mic', desc: 'Écouter, répéter, parler' },
+    exo: { label: 'Écrire', desc: 'Écris en anglais : chaque faute est expliquée mot par mot.' },
+    cards: 'Mots et phrases : écoute, retourne la carte et auto-évalue-toi.',
+    missions: false
+  });
 })();
