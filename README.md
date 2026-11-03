@@ -18,6 +18,7 @@ Application de révision **100 % hors ligne** (PWA), organisée en **matières**
 
 ## Anglais (grand débutant)
 12 chapitres progressifs : premiers pas et to be, nombres/heure/dates, famille, maison, nourriture, présent simple, présent continu, prétérit, **verbes irréguliers** (95 verbes, 3 formes), futur et voyages, adjectifs et comparatifs, converser au quotidien.
+- **Parcours du jour** (page d'ouverture quand l'anglais est la dernière matière utilisée) : environ 10 minutes guidées — révision des éléments dus, leçon (une fiche + 5 mots ou verbes + 2 phrases nouveaux), puis écoute, écriture et oral sur ces nouveautés. Le plan du jour est enregistré dans la progression ; le programme avance chapitre par chapitre.
 - **Fiches à écouter** : chaque mot ou phrase en anglais se lit à voix haute d'un clic (voix du téléphone, hors ligne).
 - **Vocabulaire** et phrases utiles, révisés en flashcards avec audio.
 - **QCM**, **écoute** (entendre puis choisir le sens, dictée de nombres), **écriture** (le correcteur explique chaque faute : -s de la 3e personne, am/is/are, do/does, a/an, verbe irrégulier mis en -ed, prétérit/participe, ordre des mots, orthographe, français à la place de l'anglais ; contractions et orthographe US/UK acceptées) et **oral** (reconnaissance vocale du navigateur, ou auto-évaluation si elle n'est pas disponible).

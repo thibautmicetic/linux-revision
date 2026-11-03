@@ -495,3 +495,24 @@ mark.en-fix { background: color-mix(in srgb, var(--ok) 22%, transparent); color:
 .voc-ex { grid-column: 1 / -1; font-size: .86rem; color: var(--muted); font-style: italic; border-bottom: 0; justify-self: start; }
 table.verbs td, table.verbs th { white-space: nowrap; }
 @media (max-width: 600px) { .voc { grid-template-columns: 1fr; } .en-big { font-size: 1.3rem; } table.verbs { font-size: .9rem; } }
+
+/* ---------- parcours du jour (anglais) ---------- */
+.path { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+.pstep { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.pstep .pnum { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--bg2); color: var(--muted); }
+.pstep .pbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.pstep .pbody b { display: flex; align-items: center; gap: 7px; }
+.pstep .pbody .ic { width: 18px; height: 18px; }
+.pstep.cur { border-color: var(--subj, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--subj, var(--accent)) 22%, transparent); }
+.pstep.cur .pnum { background: var(--subj, var(--accent)); color: #fff; }
+.pstep.done .pnum { background: var(--ok); color: #fff; }
+.pstep.done .pbody b { color: var(--muted); }
+.next.pdone { background: linear-gradient(135deg, var(--ok), color-mix(in srgb, var(--ok) 55%, #0d9488)); margin: 18px 0; }
+.lw { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.lw:last-child { border-bottom: 0; }
+.lw > .say-b { flex: none; padding: 8px 10px; }
+.lw > .say-b .ic { width: 20px; height: 20px; }
+.lw-en { font-size: 1.15rem; margin-right: 8px; }
+.lw-fr { color: var(--text2); }
+.callout .ic { width: 1em; height: 1em; vertical-align: -.12em; }
+@media (max-width: 560px) { .pstep { flex-wrap: wrap; align-items: flex-start; } .pstep .pbody { flex: 1 1 calc(100% - 60px); } .pstep > .btn { margin-left: 48px; } }

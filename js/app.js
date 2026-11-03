@@ -29,7 +29,8 @@
     mic: '<rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/>',
     speaker: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     ear: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="2.5" y="14" width="5" height="7" rx="2"/><rect x="16.5" y="14" width="5" height="7" rx="2"/>',
-    pen: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="m14 6 4 4"/>'
+    pen: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="m14 6 4 4"/>',
+    flag: '<path d="M5 21V4M5 4h12l-2.5 4.5L17 13H5"/>'
   };
   const icon = (n, cls) => '<svg class="ic ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[n] || I.grid) + '</svg>';
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
@@ -78,7 +79,7 @@
   /* ---------- navigation ---------- */
   function navItems(s) {
     const S = APP.subject(s);
-    return [[R(s), 'Tableau de bord', 'grid', 'dash'], [R(s) + '/cours', 'Cours', 'book', 'cours'], [R(s) + '/entrainement', 'Entraînement', 'target', 'entrainement'], [S.tool.route, S.tool.label, S.tool.icon, 'tool'], [R(s) + '/memo', S.memo.label, s === 'maths' ? 'sigma' : s === 'anglais' ? 'book' : 'search', 'memo'], [R(s) + '/progres', 'Progrès', 'chart', 'progres']];
+    return [[R(s), 'Tableau de bord', 'grid', 'dash']].concat(s === 'anglais' ? [[R(s) + '/parcours', 'Parcours du jour', 'flag', 'parcours']] : [], [[R(s) + '/cours', 'Cours', 'book', 'cours'], [R(s) + '/entrainement', 'Entraînement', 'target', 'entrainement'], [S.tool.route, S.tool.label, S.tool.icon, 'tool'], [R(s) + '/memo', S.memo.label, s === 'maths' ? 'sigma' : s === 'anglais' ? 'book' : 'search', 'memo'], [R(s) + '/progres', 'Progrès', 'chart', 'progres']]);
   }
   function renderNav(active) {
     const due = P.dueCount(SUBJ);
@@ -86,8 +87,9 @@
     $('#nav').innerHTML = '<a href="#/" class="' + (active === 'hub' ? 'on' : '') + '">' + icon('home') + '<span>Accueil</span></a><div class="subsw">' + sw + '</div>' +
       navItems(SUBJ).map(([h, l, i, k]) => '<a href="' + h + '" class="' + (active === k ? 'on' : '') + '">' + icon(i) + '<span>' + esc(l) + '</span>' + (k === 'entrainement' && due ? '<span class="badge">' + due + '</span>' : '') + '</a>').join('') +
       '<div class="sub">Chapitres · ' + esc(subj().short) + '</div>' + chs().map((c) => '<a href="#/ch/' + c.id + '" data-ch="' + c.id + '" class="' + (active === 'ch/' + c.id ? 'on' : '') + '"><span class="chip-ch" style="width:24px;height:22px;font-size:.7rem;border-radius:7px">' + c.num + '</span><span class="small">' + esc(c.title) + '</span></a>').join('');
-    const B = [['#/', 'Accueil', 'home', 'hub']].concat(navItems(SUBJ).filter((x) => ['cours', 'entrainement', 'tool', 'progres'].includes(x[3])));
-    $('#bottom').innerHTML = B.map(([h, l, i, k]) => '<a href="' + h + '" class="' + (active === k ? 'on' : '') + '">' + icon(i) + '<span>' + (k === 'entrainement' ? 'S\'entraîner' : esc(l)) + '</span></a>').join('');
+    // mobile : en anglais, « Aujourd'hui » (le parcours) remplace l'accueil, toujours accessible par le logo
+    const B = (isEn() ? [] : [['#/', 'Accueil', 'home', 'hub']]).concat(navItems(SUBJ).filter((x) => ['parcours', 'cours', 'entrainement', 'tool', 'progres'].includes(x[3])));
+    $('#bottom').innerHTML = B.map(([h, l, i, k]) => '<a href="' + h + '" class="' + (active === k ? 'on' : '') + '">' + icon(i) + '<span>' + (k === 'entrainement' ? 'S\'entraîner' : k === 'parcours' ? 'Aujourd\'hui' : esc(l)) + '</span></a>').join('');
     $('#topbar').innerHTML = '<a class="brand-m" href="#/"><span class="logo">$_</span></a><div class="subsw m">' + sw + '</div>';
     document.documentElement.style.setProperty('--subj', subj().color);
   }
@@ -122,6 +124,7 @@
           case 'progres': pageProgress(); break;
           case 'labo': pageLabo(q); break;
           case 'oral': pageOral(); break;
+          case 'parcours': if (parts[3] === 'lecon') pageLecon(); else pageParcours(); break;
           default: pageDash();
         }
       } else if (parts[0] === 'ch') pageChapter(parts[1], parts[2]);
@@ -149,7 +152,7 @@
       const nq = allOf('quiz', null, s.id).length, nx = allOf('exo', null, s.id).length;
       h += '<div class="card subj" style="--sc:' + s.color + '"><div class="row" style="flex-wrap:nowrap;gap:14px"><span class="subj-b">' + esc(s.badge) + '</span><div style="flex:1;min-width:0"><div class="kicker">' + esc(s.kicker) + '</div><h2 style="margin:0">' + esc(s.title) + '</h2></div><b style="font-size:1.3rem">' + pct(m) + '%</b></div><p class="muted small" style="margin:10px 0">' + esc(s.desc) + '</p><div class="bar"><i style="width:' + pct(m) + '%;background:var(--sc)"></i></div>';
       h += '<div class="small muted" style="margin:8px 0 12px">' + nCh + ' chapitres · ' + nq + ' quiz · ' + nx + ' exercices · ' + (P.subjectToday(s.id) || 0) + ' réponse' + (P.subjectToday(s.id) > 1 ? 's' : '') + ' aujourd\'hui</div>';
-      h += '<div class="row"><a class="btn sm" href="' + R(s.id) + '" style="background:var(--sc)">Ouvrir</a><button class="btn sm ghost" data-smart="' + s.id + '">' + (due ? 'Réviser (' + due + ')' : 'Révision du jour') + '</button><a class="btn sm ghost" href="' + s.tool.route + '">' + esc(s.tool.label) + '</a></div></div>';
+      h += '<div class="row"><a class="btn sm" href="' + R(s.id) + '" style="background:var(--sc)">Ouvrir</a>' + (s.id === 'anglais' ? '<a class="btn sm ghost" href="' + R(s.id) + '/parcours">Parcours du jour</a>' : '<button class="btn sm ghost" data-smart="' + s.id + '">' + (due ? 'Réviser (' + due + ')' : 'Révision du jour') + '</button>') + '<a class="btn sm ghost" href="' + s.tool.route + '">' + esc(s.tool.label) + '</a></div></div>';
     }
     h += '<div class="card subj add"><div class="row" style="flex-wrap:nowrap;gap:14px"><span class="subj-b">' + icon('plus') + '</span><div><h2 style="margin:0">Bientôt d\'autres matières</h2><p class="muted small" style="margin:6px 0 0">L\'application est prête à accueillir de nouvelles parties (électronique, réseaux, BDD…) : chacune aura ses fiches, quiz, exercices et son suivi.</p></div></div></div></div>';
     h += '<div class="section-title"><h2>Activité</h2></div><div class="card">' + heatmap() + '<div class="small muted" style="margin-top:8px">Chaque case = un jour ; plus elle est verte, plus tu as répondu de questions.</div></div></div>';
@@ -159,6 +162,11 @@
 
   /* ================= TABLEAU DE BORD D'UNE MATIÈRE ================= */
   function nextAction() {
+    if (isEn()) {
+      const pl = todayPlan(), st = planSteps(pl), nx = st.find((k) => !pl.done[k]);
+      return nx ? { t: 'Parcours du jour · étape ' + (st.indexOf(nx) + 1) + ' sur ' + st.length, p: 'Environ 10 minutes guidées : révision, nouveaux mots, écoute, écriture et oral.', b: st.some((k) => pl.done[k]) ? 'Continuer' : 'Commencer', href: PR() }
+        : { t: 'Parcours du jour terminé ✓', p: 'Bravo ! Reviens demain pour de nouveaux mots. En attendant, tu peux réviser librement.', b: 'Voir le parcours', href: PR() };
+    }
     const due = P.dueCount(SUBJ);
     if (due >= 3) return { t: due + ' élément' + (due > 1 ? 's' : '') + ' à réviser', p: 'La répétition espacée te les repropose au bon moment pour les ancrer durablement.', b: 'Réviser maintenant', go: () => startSmart() };
     for (const c of chs()) {
@@ -341,7 +349,7 @@
   function startSession(o) {
     const items = (o.items || []).filter(Boolean);
     if (!items.length) { toast('Rien à réviser pour l\'instant !'); return; }
-    S = { title: o.title, items, i: 0, results: [], back: o.back || R() + '/entrainement', exam: !!o.exam, start: Date.now(), limit: o.limit || null, gen: o.gen || null, subject: SUBJ };
+    S = { title: o.title, items, i: 0, results: [], back: o.back || R() + '/entrainement', exam: !!o.exam, start: Date.now(), limit: o.limit || null, gen: o.gen || null, subject: SUBJ, path: o.path || null, pathDate: o.pathDate || null };
     if (location.hash === '#/session') route(); else location.hash = '#/session';
   }
   APP.startSession = startSession;
@@ -677,9 +685,17 @@
     const ok = res.filter((r) => r.ok).length;
     const score = res.length ? ok / res.length : 1;
     const dur = Math.round((Date.now() - S.start) / 1000);
+    // étape du parcours du jour : on la coche, et on propose directement la suivante
+    let pnext = null;
+    if (S.path) {
+      const pl = pathState().plan;
+      if (pl && pl.date === S.pathDate) { if (!S.ended) stepDone(S.path); pnext = planSteps(pl).find((k) => !pl.done[k]) || null; }
+      S.ended = true;
+    }
     let h = '<div class="page"><div class="sess summary"><div class="card" style="text-align:center"><div class="kicker">' + esc(S.title) + '</div><div class="big" style="color:' + (score >= 0.8 ? 'var(--ok)' : score >= 0.5 ? 'var(--warn)' : 'var(--ko)') + '">' + (res.length ? Math.round(score * 100) + '%' : '✓') + '</div><p class="muted">' + (res.length ? ok + ' bonne' + (ok > 1 ? 's' : '') + ' réponse' + (ok > 1 ? 's' : '') + ' sur ' + res.length : '') + (cards.length ? (res.length ? ' · ' : '') + cards.length + ' flashcard' + (cards.length > 1 ? 's' : '') : '') + ' · ' + Math.floor(dur / 60) + ' min ' + (dur % 60) + ' s</p>';
     h += '<p>' + (score >= 0.9 ? 'Excellent, c\'est maîtrisé !' : score >= 0.7 ? 'Bien joué ! Revois les quelques erreurs ci-dessous.' : score >= 0.5 ? 'C\'est en bonne voie : les erreurs reviendront bientôt en révision.' : 'Relis les fiches correspondantes puis retente : la répétition fait tout.') + '</p>';
-    h += '<div class="row" style="justify-content:center">' + (res.some((r) => !r.ok) ? '<button class="btn" id="redoB">' + icon('redo') + ' Refaire mes erreurs</button>' : '') + '<button class="btn ghost" id="againB">Nouvelle session</button><a class="btn ghost" href="' + S.back + '">Retour</a></div></div>';
+    if (S.path) h += '<p class="small muted">Étape « ' + esc(PSTEPS[S.path][0]) + ' » terminée ✓' + (res.some((r) => !r.ok) ? ' — tes erreurs reviendront dans les prochaines révisions.' : '') + '</p><div class="row" style="justify-content:center">' + (pnext ? '<button class="btn" id="pnextB">Étape suivante : ' + esc(PSTEPS[pnext][0]) + ' →</button>' : '<a class="btn" href="' + PR() + '">Terminer le parcours ✓</a>') + (res.some((r) => !r.ok) ? '<button class="btn ghost" id="redoB">' + icon('redo') + ' Refaire mes erreurs</button>' : '') + (pnext ? '<a class="btn ghost" href="' + PR() + '">Retour au parcours</a>' : '') + '</div></div>';
+    else h += '<div class="row" style="justify-content:center">' + (res.some((r) => !r.ok) ? '<button class="btn" id="redoB">' + icon('redo') + ' Refaire mes erreurs</button>' : '') + '<button class="btn ghost" id="againB">Nouvelle session</button><a class="btn ghost" href="' + S.back + '">Retour</a></div></div>';
     const wrong = res.filter((r) => !r.ok);
     if (wrong.length || S.exam) {
       h += '<div class="section-title"><h2>' + (S.exam ? 'Correction' : 'À retenir') + '</h2></div>';
@@ -707,7 +723,8 @@
     if (S.subject === 'anglais') mountSay(main);
     bindSheets(main);
     if ($('#redoB')) $('#redoB').onclick = () => startSession({ title: 'Mes erreurs', items: U.shuffle(wrong.map((r) => (r.it.kind === 'gen' ? APP.genQuestion(r.it.gen) : r.it))), back: S.back });
-    $('#againB').onclick = () => {
+    if ($('#pnextB')) $('#pnextB').onclick = () => startStep(pnext);
+    if ($('#againB')) $('#againB').onclick = () => {
       if (S.exam) return startExam();
       if (S.gen) return startGen(S.gen, S.back);
       const kinds = new Set(S.items.map((x) => x.kind));
@@ -759,6 +776,138 @@
     $('#examB').onclick = () => startExam(sel);
     $('#errB').onclick = () => startSession({ title: 'Mes erreurs', items: U.shuffle(errs).slice(0, 20), back: R() + '/entrainement' });
     $$('[data-g]').forEach((b) => (b.onclick = () => startGen(b.dataset.g)));
+  }
+
+  /* ================= PARCOURS DU JOUR (anglais) ================= */
+  // Environ 10 minutes guidées : révision des éléments dus, leçon (une fiche + 5 mots ou verbes + 2 phrases nouveaux),
+  // puis écoute, écriture et oral sur ces nouveautés. Le plan du jour est enregistré : mêmes mots si on revient plus tard.
+  const PSTEPS = { review: ['Révision', 'redo'], lesson: ['Leçon du jour', 'book'], listen: ['Écouter', 'ear'], write: ['Écrire', 'pen'], speak: ['Parler', 'mic'] };
+  const PORDER = ['review', 'lesson', 'listen', 'write', 'speak'];
+  const PR = () => R('anglais') + '/parcours';
+  function pathState() { const st = P.state(); return (st.enPath = st.enPath || { seen: {}, days: {}, plan: null }); }
+  // unités à apprendre d'un chapitre : mots (ou verbes irréguliers) et phrases, dans l'ordre du chapitre
+  function unitsOf(c) { return { words: (c.words || []).concat(EN().verbs.filter((v) => v.id.startsWith(c.id + '-v-')).map((v) => Object.assign({ verb: true }, v))), phrases: c.phrases || [] }; }
+  const unitEn = (w) => (w.verb ? 'to ' + w.base : w.en);
+  function buildPlan(round) {
+    const seen = pathState().seen, st = P.state();
+    const list = chs('anglais');
+    const c = list.find((x) => { const u = unitsOf(x); return u.words.some((w) => !seen[w.id]) || u.phrases.some((p) => !seen[p.id]); }) || list[list.length - 1];
+    const u = unitsOf(c);
+    const W = u.words.filter((w) => !seen[w.id]).slice(0, 5);
+    const PH = u.phrases.filter((p) => !seen[p.id]).slice(0, W.length ? 2 : 4);
+    const sec = c.sections.find((s) => !st.sections[s.id] && s.id !== c.vocabSec);
+    const okSec = new Set(c.sections.filter((s) => st.sections[s.id] || s === sec || s.id === c.vocabSec).map((s) => s.id));
+    const used = new Set();
+    const take = (ids) => ids.filter((id) => findItem(id) && !used.has(id) && used.add(id));
+    const ids = (arr, suf) => arr.map((x) => x.id + suf);
+    // exercices écrits à la main du chapitre, limités aux fiches déjà lues (ou à celle du jour)
+    const authored = (mode, n) => take(pickItems([].concat(c.quiz, c.exercises).filter((x) => /-[qx]-\d/.test(x.id) && x.mode === mode && okSec.has(x.sec)), n).map((x) => x.id));
+    // complète avec des éléments déjà travaillés du même type
+    const topUp = (l, mode, n) => (l.length >= n ? l : l.concat(take(pickItems(allOf(mode, null, 'anglais').filter((x) => st.items[x.id] && !used.has(x.id)), n - l.length).map((x) => x.id))));
+    const words = W.filter((w) => !w.verb), verbs = W.filter((w) => w.verb);
+    let ns = 0;
+    const due = pickItems(allOf('quiz', null, 'anglais').concat(allOf('exo', null, 'anglais'), allOf('card', null, 'anglais')).filter((x) => P.isDue(x.id)), 40);
+    const items = { review: take(due.filter((x) => x.mode !== 'speak' || ns++ < 1).slice(0, 6).map((x) => x.id)) };
+    items.lesson = take(ids(W, '-c')).concat(authored('choice', W.length ? 2 : 4));
+    items.listen = topUp(take(ids(U.shuffle(words).slice(0, 3), '-l').concat(ids(PH, '-l'))).concat(authored('listen', 1)), 'listen', 4);
+    items.write = topUp(take(ids(words.slice(0, 2), '-w').concat(ids(verbs.slice(0, 3), '-p'), ids(verbs.slice(3, 5), '-pp'), ids(PH.slice(0, 1), '-w'))).concat(authored('write', 2)), 'write', 4).slice(0, 6);
+    items.speak = topUp(take(ids(words.slice(-2), '-s').concat(ids(verbs.slice(0, 3), '-s'), ids(PH.slice(0, 2), '-s'))), 'speak', 3);
+    return { date: U.today(), round: round || 1, ch: c.id, words: W.map((w) => w.id), phrases: PH.map((p) => p.id), sec: sec ? sec.id : null, items, done: {} };
+  }
+  function todayPlan() {
+    const ps = pathState();
+    if (!ps.plan || ps.plan.date !== U.today()) { ps.plan = buildPlan(1); P.save(); }
+    return ps.plan;
+  }
+  const planSteps = (pl) => PORDER.filter((k) => (k === 'lesson' ? pl.words.length || pl.phrases.length || pl.sec || pl.items.lesson.length : pl.items[k].length));
+  function planUnits(pl) {
+    const c = chOf(pl.ch), u = unitsOf(c);
+    return { c, W: pl.words.map((id) => u.words.find((w) => w.id === id)).filter(Boolean), PH: pl.phrases.map((id) => u.phrases.find((p) => p.id === id)).filter(Boolean), sec: pl.sec ? c.sections.find((s) => s.id === pl.sec) : null };
+  }
+  function stepDone(key) {
+    const ps = pathState(), pl = ps.plan;
+    if (!pl) return;
+    pl.done[key] = Date.now();
+    if (!pl.finished && planSteps(pl).every((k) => pl.done[k])) { pl.finished = Date.now(); ps.days[pl.date] = (ps.days[pl.date] || 0) + 1; }
+    P.save();
+  }
+  function pathStreak() {
+    const d = pathState().days; let t = new Date(), s = 0;
+    if (!d[U.today(t)]) t = new Date(Date.now() - 86400000);
+    while (d[U.today(t)]) { s++; t = new Date(t.getTime() - 86400000); }
+    return s;
+  }
+  const genFor = (c) => gensOf('anglais').filter(([, x]) => chOf(x.chapter) && chOf(x.chapter).num < c.num);
+  function startStep(key) {
+    if (key === 'lesson') { location.hash = PR() + '/lecon'; return; }
+    const pl = todayPlan(), c = chOf(pl.ch);
+    const items = pl.items[key].map(findItem).filter(Boolean);
+    // écriture : un exercice de conjugaison généré sur un chapitre déjà terminé
+    if (key === 'write') { const g = genFor(c); if (g.length) items.push(APP.genQuestion(U.pick(g)[0])); }
+    if (!items.length) { stepDone(key); if (location.hash === PR()) route(); else location.hash = PR(); return; }
+    startSession({ title: 'Parcours du jour · ' + PSTEPS[key][0], items, back: PR(), path: key, pathDate: pl.date });
+  }
+  function pageParcours() {
+    const pl = todayPlan(), steps = planSteps(pl), nx = steps.find((k) => !pl.done[k]);
+    const { c, W, PH, sec } = planUnits(pl);
+    const ndone = steps.filter((k) => pl.done[k]).length, streak = pathStreak();
+    const n = (k) => pl.items[k].length + (k === 'write' && genFor(c).length ? 1 : 0);
+    const pl_ = (x, w) => x + ' ' + w + (x > 1 ? 's' : '');
+    const desc = {
+      review: pl_(pl.items.review.length, 'élément') + ' déjà vu' + (pl.items.review.length > 1 ? 's' : '') + ' à revoir, au bon moment pour bien les retenir.',
+      lesson: [sec ? 'La fiche « ' + sec.title + ' »' : '', W.length ? (W.length > 1 ? W.length + ' nouveaux ' : '1 nouveau ') + (W[0].verb ? 'verbe' : 'mot') + (W.length > 1 ? 's' : '') + ' : ' + W.map(unitEn).join(', ') : '', PH.length ? pl_(PH.length, 'phrase') + ' utile' + (PH.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') + '.',
+      listen: 'Reconnaître les mots et les phrases à l\'oral (' + n('listen') + ' questions).',
+      write: 'Les écrire en anglais : le correcteur explique chaque faute (' + n('write') + ' questions).',
+      speak: 'Les dire à voix haute, au micro (' + n('speak') + ' questions).'
+    };
+    const day = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    let h = '<div class="page"><div class="hero"><div><div class="kicker">Anglais · ' + esc(day) + '</div><h1>Parcours du jour</h1><p class="muted">Environ <b>10 minutes</b>. Fais les étapes dans l\'ordre : l\'application choisit pour toi ce qu\'il faut apprendre et revoir.</p><p class="small muted">Chapitre ' + c.num + ' : ' + esc(c.title) + (streak ? ' · ' + icon('fire') + ' ' + pl_(streak, 'jour') + ' de suite' : '') + '</p></div>' + ring(steps.length ? ndone / steps.length : 1, ndone + '<small>/ ' + steps.length + ' étapes</small>', 116, APP.subject('anglais').color) + '</div>';
+    h += nx ? '<div class="next" style="margin:18px 0"><div style="flex:1"><b style="font-size:1.08rem">Étape ' + (steps.indexOf(nx) + 1) + ' sur ' + steps.length + ' : ' + esc(PSTEPS[nx][0]) + '</b><p>' + esc(desc[nx]) + '</p></div><button class="btn" data-step="' + nx + '">' + (ndone ? 'Continuer' : 'Commencer') + ' →</button></div>'
+      : '<div class="next pdone"><div style="flex:1"><b style="font-size:1.08rem">Bravo, parcours terminé !</b><p>Reviens demain : de nouveaux mots t\'attendent, et l\'application te fera revoir ceux d\'aujourd\'hui au bon moment.</p></div></div>';
+    h += '<div class="path">' + steps.map((k, i) => {
+      const d = pl.done[k], cur = k === nx;
+      return '<div class="pstep' + (d ? ' done' : cur ? ' cur' : '') + '"><span class="pnum">' + (d ? '✓' : i + 1) + '</span><div class="pbody"><b>' + icon(PSTEPS[k][1]) + esc(PSTEPS[k][0]) + '</b><span class="small muted">' + esc(desc[k]) + '</span></div><button class="btn sm' + (cur ? '' : ' ghost') + '" data-step="' + k + '">' + (d ? 'Refaire' : 'Commencer') + '</button></div>';
+    }).join('') + '</div>';
+    if (!nx) h += '<div class="section-title"><h2>Encore un peu ?</h2></div><div class="grid g2"><div class="card qa"><span class="ico">' + icon('plus') + '</span><b>Une leçon de plus</b><span>De nouveaux mots tout de suite, si tu as encore le temps.</span><div class="row" style="margin-top:8px"><button class="btn sm" id="moreB">Continuer</button></div></div><div class="card qa"><span class="ico">' + icon('redo') + '</span><b>Révision libre</b><span>Un mélange de ce que tu as déjà vu.</span><div class="row" style="margin-top:8px"><button class="btn sm" id="revB">Réviser</button></div></div></div>';
+    h += '<div class="callout tip" style="margin-top:18px"><b>Comment ça marche ?</b> Chaque jour, on revoit d\'abord les mots des jours précédents, puis on apprend <b>5 nouveaux mots</b> et une petite règle. Ensuite on les écoute, on les écrit et on les dit. Les mots ratés reviennent les jours suivants, jusqu\'à ce qu\'ils soient sus.</div></div>';
+    main.innerHTML = h;
+    $$('[data-step]').forEach((b) => (b.onclick = () => startStep(b.dataset.step)));
+    if ($('#moreB')) $('#moreB').onclick = () => { const ps = pathState(); ps.plan = buildPlan((pl.round || 1) + 1); P.save(); route(); };
+    if ($('#revB')) $('#revB').onclick = startSmart;
+  }
+  function pageLecon() {
+    const pl = todayPlan(), steps = planSteps(pl);
+    const { c, W, PH, sec } = planUnits(pl);
+    const forms = (w) => w.base + ', ' + w.pret.split('/')[0] + ', ' + w.pp.split('/')[0];
+    const row = (w) => w.verb
+      ? '<div class="lw">' + sayBtn(forms(w)) + '<div><b class="lw-en">to ' + esc(w.base) + '</b><span class="lw-fr">' + esc(w.fr) + '</span><div class="small">' + esc(w.base) + ' · <b>' + esc(w.pret.replace(/\//g, ' / ')) + '</b> · <b>' + esc(w.pp.replace(/\//g, ' / ')) + '</b> <span class="muted">(base · prétérit · participe passé)</span></div>' + (w.note ? '<div class="small muted">' + md(w.note) + '</div>' : '') + '</div></div>'
+      : '<div class="lw">' + sayBtn(w.en) + '<div><b class="lw-en">' + esc(w.en) + '</b><span class="lw-fr">' + esc(w.fr) + '</span>' + (w.ex ? '<div class="small"><span class="say" data-say="' + esc(w.ex) + '"><i>' + esc(w.ex) + '</i></span>' + (w.exFr ? ' <span class="muted">— ' + esc(w.exFr) + '</span>' : '') + '</div>' : '') + (w.note ? '<div class="small muted">' + md(w.note) + '</div>' : '') + '</div></div>';
+    let h = '<div class="page"><a class="btn sm ghost" href="' + PR() + '">← Parcours du jour</a><div class="kicker" style="margin-top:14px">Étape ' + (steps.indexOf('lesson') + 1) + ' sur ' + steps.length + ' · Chapitre ' + c.num + ' : ' + esc(c.title) + '</div><h1>Leçon du jour</h1>';
+    if (sec) h += '<div class="card"><div class="row" style="flex-wrap:nowrap;gap:12px"><span class="ico">' + icon('book') + '</span><div style="flex:1"><b>La règle du jour : ' + esc(sec.title) + '</b><div class="small muted" id="secS">' + (P.state().sections[sec.id] ? 'Déjà lue ✓ Tu peux la relire.' : 'Lis-la tranquillement. Touche les mots anglais pour les entendre.') + '</div></div></div><div class="row" style="margin-top:10px"><button class="btn sm" id="secB">' + icon('book') + ' Lire la fiche</button></div></div>';
+    const block = (title, list, id) => '<div class="section-title"><h2>' + title + '</h2><button class="btn sm ghost" id="' + id + '">' + icon('speaker') + ' Tout écouter</button></div><div class="card flat vocab">' + list.map(row).join('') + '</div>';
+    if (W.length) h += block(W.length > 1 ? 'Tes ' + W.length + ' nouveaux ' + (W[0].verb ? 'verbes' : 'mots') : 'Ton nouveau ' + (W[0].verb ? 'verbe' : 'mot'), W, 'allW');
+    if (PH.length) h += block(PH.length > 1 ? 'Phrases du jour' : 'Phrase du jour', PH, 'allP');
+    if (W.length || PH.length) h += '<div class="callout tip" style="margin-top:14px"><b>Conseil</b> Touche ' + icon('speaker') + ' pour entendre chaque mot, puis répète-le <b>à voix haute</b> deux ou trois fois. Quand tu es prêt, passe au petit quiz.</div>';
+    h += '<div class="row" style="margin-top:16px"><button class="btn block" id="goB">' + (pl.items.lesson.length ? 'J\'ai écouté, je passe au quiz →' : 'C\'est lu, étape suivante →') + '</button></div></div>';
+    main.innerHTML = h;
+    mountSay(main);
+    if ($('#secB')) $('#secB').onclick = () => { openSheet(c.title + ' — ' + sec.title, sec.html, 'en'); P.markSection(sec.id); $('#secS').textContent = 'Lue ✓ Tu peux la relire.'; };
+    // lecture enchaînée de toute la liste, avec une courte pause entre deux mots
+    const playAll = (texts, btn) => {
+      let i = 0; btn.disabled = true;
+      const go = () => { if (i >= texts.length || !document.body.contains(btn)) { btn.disabled = false; return; } EN().say(texts[i++], null, () => setTimeout(go, 800)); };
+      go();
+    };
+    if ($('#allW')) $('#allW').onclick = () => playAll(W.map((w) => (w.verb ? forms(w) : w.en)), $('#allW'));
+    if ($('#allP')) $('#allP').onclick = () => playAll(PH.map((p) => p.en), $('#allP'));
+    cleanup = () => EN().stopSay();
+    $('#goB').onclick = () => {
+      const ps = pathState();
+      for (const x of W.concat(PH)) ps.seen[x.id] = ps.seen[x.id] || pl.date;
+      P.save();
+      if (pl.items.lesson.length) { startSession({ title: 'Parcours du jour · ' + PSTEPS.lesson[0], items: pl.items.lesson.map(findItem).filter(Boolean), back: PR(), path: 'lesson', pathDate: pl.date }); return; }
+      stepDone('lesson'); location.hash = PR();
+    };
   }
 
   /* ================= OUTILS ================= */
@@ -956,5 +1105,6 @@
       if (reg.active) ready(); else navigator.serviceWorker.ready.then(ready);
     }).catch(() => {});
   }
+  if (!location.hash && SUBJ === 'anglais') history.replaceState(null, '', R('anglais') + '/parcours');
   route();
 })();
