@@ -516,3 +516,28 @@ table.verbs td, table.verbs th { white-space: nowrap; }
 .lw-fr { color: var(--text2); }
 .callout .ic { width: 1em; height: 1em; vertical-align: -.12em; }
 @media (max-width: 560px) { .pstep { flex-wrap: wrap; align-items: flex-start; } .pstep .pbody { flex: 1 1 calc(100% - 60px); } .pstep > .btn { margin-left: 48px; } }
+
+/* ---------- dialogues (anglais) ---------- */
+.dlg-ctx { display: flex; gap: 12px; align-items: flex-start; background: var(--bg2); border-radius: 12px; padding: 12px 14px; margin: 4px 0 14px; }
+.dlg-ctx > .ic { flex: none; width: 26px; height: 26px; color: var(--subj, var(--accent)); margin-top: 2px; }
+.dlg { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 16px; }
+.dl { display: flex; gap: 8px; align-items: flex-end; max-width: 88%; }
+.dl.s1 { flex-direction: row-reverse; align-self: flex-end; text-align: right; }
+.dl-who { flex: none; font-size: .72rem; font-weight: 700; color: var(--muted); min-width: 2.6em; padding-bottom: 6px; }
+.dl-b { background: var(--card); border: 1px solid var(--line); border-radius: 14px 14px 14px 4px; padding: 8px 12px; transition: background .2s, border-color .2s; }
+.dl.s1 .dl-b { border-radius: 14px 14px 4px 14px; background: color-mix(in srgb, var(--subj, var(--accent)) 12%, var(--card)); }
+.dl.s2 .dl-b { background: color-mix(in srgb, var(--warn) 10%, var(--card)); }
+.dl-b .say { border-bottom: 0; }
+.dl-b .say::after { display: none; }
+.dl-fr { font-size: .84rem; color: var(--muted); margin-top: 3px; }
+.dl.on .dl-b { border-color: var(--subj, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--subj, var(--accent)) 25%, transparent); }
+.dl.key .dl-b { border-color: var(--warn); background: var(--warn-soft); }
+.dqs { display: flex; flex-direction: column; gap: 14px; }
+.dq { border-top: 1px solid var(--line); padding-top: 12px; }
+.dq-q { font-weight: 600; margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; }
+.dq-q .k { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--bg2); display: inline-grid; place-items: center; font-size: .75rem; font-weight: 800; }
+.dq-r { margin-top: 8px; padding: 10px 12px; border-radius: 10px; font-size: .92rem; }
+.dq-r.ok { background: var(--ok-soft); }
+.dq-r.ko { background: var(--ko-soft); }
+.dq-r > div { margin-top: 4px; }
+.sumcorr .dlg { margin-top: 8px; }

@@ -20,6 +20,7 @@ Application de révision **100 % hors ligne** (PWA), organisée en **matières**
 12 chapitres progressifs : premiers pas et to be, nombres/heure/dates, famille, maison, nourriture, présent simple, présent continu, prétérit, **verbes irréguliers** (95 verbes, 3 formes), futur et voyages, adjectifs et comparatifs, converser au quotidien.
 - **Parcours du jour** (page d'ouverture quand l'anglais est la dernière matière utilisée) : environ 10 minutes guidées — révision des éléments dus, leçon (une fiche + 5 mots ou verbes + 2 phrases nouveaux), puis écoute, écriture et oral sur ces nouveautés. Le plan du jour est enregistré dans la progression ; le programme avance chapitre par chapitre.
 - **Fiches à écouter** : chaque mot ou phrase en anglais se lit à voix haute d'un clic (voix du téléphone, hors ligne).
+- **Dialogues à écouter** (3 par chapitre, fichiers `js/data/anglais/dialogues-*.js`) : une voix par personnage, texte caché pendant l'écoute, questions de compréhension en français expliquées, puis texte et traduction avec les répliques utiles surlignées. Un dialogue est glissé dans l'étape « Écouter » du parcours du jour.
 - **Vocabulaire** et phrases utiles, révisés en flashcards avec audio.
 - **QCM**, **écoute** (entendre puis choisir le sens, dictée de nombres), **écriture** (le correcteur explique chaque faute : -s de la 3e personne, am/is/are, do/does, a/an, verbe irrégulier mis en -ed, prétérit/participe, ordre des mots, orthographe, français à la place de l'anglais ; contractions et orthographe US/UK acceptées) et **oral** (reconnaissance vocale du navigateur, ou auto-évaluation si elle n'est pas disponible).
 - **Conjugaison & réflexes** générés à l'infini : to be, présent simple (affirmatif, négatif, questions), présent continu, prétérit, futur, nombres, heure, pluriels, comparatifs, verbes irréguliers.
@@ -42,7 +43,7 @@ La progression est enregistrée localement dans le navigateur.
 2. Créer ses chapitres dans `js/data/<matière>/…js` avec `APP.registerChapter({ subject: '<id>', … })` (même format que les chapitres existants : `sections`, `quiz`, `exercises`, `flashcards`, `formulas` ou `commands`).
 3. Les ajouter dans `index.html`, puis relancer `python3 tools/build-sw.py`.
 
-Le contenu maths se vérifie avec `node tools/validate-maths.js js/data/maths/m1.js` (rendu LaTeX, réponses acceptées, erreurs typiques refusées), le contenu d'anglais avec `node tools/validate-anglais.js` (structure, réponses acceptées, erreurs typiques refusées et expliquées).
+Le contenu maths se vérifie avec `node tools/validate-maths.js js/data/maths/m1.js` (rendu LaTeX, réponses acceptées, erreurs typiques refusées), le contenu d'anglais avec `node tools/validate-anglais.js` (structure, réponses acceptées, erreurs typiques refusées et expliquées), les dialogues avec `node tools/validate-dialogues.js`.
 
 ## Structure
 

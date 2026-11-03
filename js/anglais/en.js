@@ -223,7 +223,9 @@
 
   /* ---------- synthèse vocale (hors ligne : voix du téléphone / de l'ordinateur) ---------- */
   let voices = [];
-  const loadVoices = () => { try { voices = window.speechSynthesis.getVoices().filter((v) => /^en([-_]|$)/i.test(v.lang)); } catch (e) { voices = []; } };
+  // voix « effets spéciaux » d'Apple (Boing, Bulles, Zarvox…) : inutilisables pour apprendre
+  const NOVELTY = /albert|bahh|bad news|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trino|whisper|wobble|zarvox|nouvelles|bouffon|bulles|cloches|orgue|murmure|violoncelle|vibration/i;
+  const loadVoices = () => { try { voices = window.speechSynthesis.getVoices().filter((v) => /^en([-_]|$)/i.test(v.lang) && !NOVELTY.test(v.name)); } catch (e) { voices = []; } };
   if (window.speechSynthesis) { loadVoices(); try { window.speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch (e) { window.speechSynthesis.onvoiceschanged = loadVoices; } }
   E.canSpeak = () => !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance !== 'undefined';
   E.voices = () => voices;
@@ -236,6 +238,7 @@
   E.say = function (text, rate, onend) {
     if (!E.canSpeak() || !text) { if (onend) onend(); return false; }
     try {
+      seq++; // interrompt un dialogue en cours
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(String(text));
       const v = E.pickVoice();
@@ -247,7 +250,51 @@
       return true;
     } catch (e) { if (onend) onend(); return false; }
   };
-  E.stopSay = () => { try { window.speechSynthesis.cancel(); } catch (e) { /* rien */ } };
+  E.stopSay = () => { seq++; try { window.speechSynthesis.cancel(); } catch (e) { /* rien */ } };
+  // dialogues : une voix par personnage (homme / femme) si le téléphone en a plusieurs, sinon la même voix plus grave ou plus aiguë
+  const FEM = /female|samantha|kate|serena|martha|karen|moira|tessa|fiona|victoria|allison|ava|susan|zoe|nicky|stephanie|catherine|libby|sonia|jenny|aria|emma|amy|joanna|salli|kimberly|ivy|kendra|hazel|susie|flo|sandy|shelley|grandma/i;
+  const MAS = /\bmale|daniel|arthur|alex|fred|aaron|oliver|rishi|gordon|\blee\b|george|ryan|guy|brian|matthew|joey|justin|thomas|james|eddy|reed|rocko|ralph|grandpa|junior/i;
+  const genderOf = (v) => (FEM.test(v.name) ? 'f' : MAS.test(v.name) ? 'm' : '');
+  E.voiceFor = function (g) {
+    const base = E.pickVoice();
+    if (!g || !base) return { voice: base, pitch: 1 };
+    if (genderOf(base) === g) return { voice: base, pitch: 1 };
+    const acc = E.accent() === 'us' ? /en[-_]US/i : /en[-_]GB/i;
+    const v = voices.find((x) => acc.test(x.lang) && x.localService && genderOf(x) === g) || voices.find((x) => acc.test(x.lang) && genderOf(x) === g) || voices.find((x) => x.localService && genderOf(x) === g);
+    if (v) return { voice: v, pitch: 1 };
+    const bg = genderOf(base);
+    return { voice: base, pitch: g === 'm' ? (bg === 'm' ? 1 : 0.8) : bg === 'f' ? 1 : 1.25 };
+  };
+  let seq = 0;
+  // lit les répliques à la suite (une voix par personnage) ; onLine(i) au début de chaque réplique, onEnd à la fin ou à l'arrêt
+  E.playLines = function (lines, o) {
+    o = o || {};
+    E.stopSay();
+    const my = ++seq;
+    if (!E.canSpeak() || !lines.length) { if (o.onEnd) o.onEnd(); return my; }
+    let i = 0;
+    const step = () => {
+      if (my !== seq) return;
+      if (i >= lines.length) { if (o.onEnd) o.onEnd(); return; }
+      const k = i++, l = lines[k];
+      try {
+        const u = new SpeechSynthesisUtterance(String(l.text));
+        const vf = E.voiceFor(l.g);
+        if (vf.voice) u.voice = vf.voice;
+        u.lang = vf.voice ? vf.voice.lang : E.accent() === 'us' ? 'en-US' : 'en-GB';
+        u.pitch = vf.pitch;
+        u.rate = o.rate || P.setting('enRate') || 0.9;
+        let fired = false;
+        const next = () => { if (fired) return; fired = true; setTimeout(step, 450); };
+        u.onend = next; u.onerror = next;
+        if (o.onLine) o.onLine(k);
+        window.speechSynthesis.speak(u);
+      } catch (e) { if (o.onEnd) o.onEnd(); }
+    };
+    step();
+    return my;
+  };
+  E.sayAs = (text, g, rate) => E.playLines([{ text, g }], { rate });
 
   /* ---------- reconnaissance vocale (selon le navigateur : Chrome, Safari) ---------- */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -283,7 +330,7 @@
     root.querySelectorAll('.say:not([data-mounted]), [data-say]:not([data-mounted])').forEach((el) => {
       el.dataset.mounted = '1';
       if (!el.matches('button')) { el.setAttribute('role', 'button'); el.tabIndex = 0; el.title = 'Écouter'; }
-      const go = (ev) => { ev.preventDefault(); ev.stopPropagation(); E.say(el.dataset.say || el.textContent, ev.shiftKey ? 0.6 : null); };
+      const go = (ev) => { ev.preventDefault(); ev.stopPropagation(); const t = el.dataset.say || el.textContent, r = ev.shiftKey ? 0.6 : null; if (el.dataset.g) E.sayAs(t, el.dataset.g, r); else E.say(t, r); };
       el.addEventListener('click', go);
       el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') go(ev); });
     });
@@ -366,4 +413,16 @@
   }
   APP.chapterHooks = APP.chapterHooks || [];
   APP.chapterHooks.push(expandChapter);
+
+  /* ---------- dialogues à écouter (fichiers dialogues-*.js, chargés après les chapitres) ---------- */
+  // { id, ch, title, context, speakers: { A: { name, g }, B: … }, lines: [[qui, anglais, français], …], questions: [{ q, choices, answer, why, explain, at }] }
+  APP.registerDialogues = function (list) {
+    for (const d of list) {
+      const ch = APP.chapter(d.ch);
+      if (!ch) { console.warn('Dialogue ' + d.id + ' : chapitre inconnu ' + d.ch); continue; }
+      const it = Object.assign({ level: 2 }, d, { kind: 'quiz', mode: 'dialogue', chapter: ch.id, subject: 'anglais', q: 'Dialogue : ' + d.title, topic: 'Dialogue · ' + d.title, sec: d.sec || null });
+      ch.quiz.push(it);
+      (ch.dialogues = ch.dialogues || []).push(it);
+    }
+  };
 })();

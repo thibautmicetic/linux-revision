@@ -30,7 +30,8 @@
     speaker: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>',
     ear: '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="2.5" y="14" width="5" height="7" rx="2"/><rect x="16.5" y="14" width="5" height="7" rx="2"/>',
     pen: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="m14 6 4 4"/>',
-    flag: '<path d="M5 21V4M5 4h12l-2.5 4.5L17 13H5"/>'
+    flag: '<path d="M5 21V4M5 4h12l-2.5 4.5L17 13H5"/>',
+    chat: '<path d="M4 4.5h11a2 2 0 0 1 2 2V12a2 2 0 0 1-2 2H9l-4 3.5V14H4a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2z"/><path d="M19.5 8.5H20a2 2 0 0 1 2 2V16a2 2 0 0 1-2 2h-.5v3l-3.5-3h-4"/>'
   };
   const icon = (n, cls) => '<svg class="ic ' + (cls || '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (I[n] || I.grid) + '</svg>';
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
@@ -50,7 +51,7 @@
   const sayBtn = (t, label) => (t && APP.en ? '<button class="btn sm ghost say-b" data-say="' + esc(t) + '" aria-label="Écouter">' + icon('speaker') + (label ? ' ' + esc(label) : '') + '</button>' : '');
   const mountSay = (el) => { if (APP.en && el) APP.en.mount(el); };
   // réservoirs d'exercices par mode (anglais : QCM, écoute, écriture, oral)
-  const MODES = { choice: (c) => c.quiz.filter((x) => x.mode !== 'listen'), listen: (c) => c.quiz.filter((x) => x.mode === 'listen').concat(c.exercises.filter((x) => x.mode === 'dictee')), write: (c) => c.exercises.filter((x) => x.mode !== 'speak' && x.mode !== 'dictee'), speak: (c) => c.exercises.filter((x) => x.mode === 'speak') };
+  const MODES = { choice: (c) => c.quiz.filter((x) => x.mode !== 'listen' && x.mode !== 'dialogue'), dialogue: (c) => c.quiz.filter((x) => x.mode === 'dialogue'), listen: (c) => c.quiz.filter((x) => x.mode === 'listen').concat(c.exercises.filter((x) => x.mode === 'dictee')), write: (c) => c.exercises.filter((x) => x.mode !== 'speak' && x.mode !== 'dictee'), speak: (c) => c.exercises.filter((x) => x.mode === 'speak') };
   const mathify = (el) => { if (APP.renderMath) APP.renderMath(el); };
   const chs = (s) => APP.chaptersOf(s || SUBJ);
   const chOf = (id) => APP.chapter(id);
@@ -199,7 +200,7 @@
     h += '</div><div class="section-title"><h2>Accès rapide</h2></div><div class="grid g4">';
     let qa = [['quiz', 'Quiz rapide', '10 questions de cours', 'q'], [SUBJ === 'maths' ? 'sigma' : 'cmd', S.exo.label, '10 exercices pratiques', 'x'], [S.tool.icon, S.tool.label, S.tool.desc, 't'], ['clock', 'Examen blanc', '20 questions, 25 min', 'e']];
     if (gensOf().length) qa.splice(2, 0, ['calc', 'Calculs express', '10 exercices générés', 'g']);
-    if (isEn()) qa = [['ear', 'Écouter', '10 mots et phrases à reconnaître', 'm:listen'], ['pen', 'Écrire', '10 exercices écrits', 'm:write'], ['mic', 'Parler', '10 phrases à dire au micro', 'm:speak'], ['calc', 'Conjugaison express', '10 exercices générés', 'g']];
+    if (isEn()) qa = [['chat', 'Dialogues', '3 conversations à écouter et comprendre', 'm:dialogue'], ['pen', 'Écrire', '10 exercices écrits', 'm:write'], ['mic', 'Parler', '10 phrases à dire au micro', 'm:speak'], ['calc', 'Conjugaison express', '10 exercices générés', 'g']];
     for (const [i, t, s, k] of qa.slice(0, 4)) h += '<button class="card click qa" data-qa="' + k + '"><span class="ico">' + icon(i) + '</span><b>' + esc(t) + '</b><span>' + esc(s) + '</span></button>';
     h += '</div></div>';
     main.innerHTML = h;
@@ -211,7 +212,7 @@
       if (k === 'g') startGen('mix');
       if (k === 't') location.hash = S.tool.route;
       if (k === 'e') startExam();
-      if (k.startsWith('m:')) { const m = k.slice(2); startSession({ title: { listen: 'Écouter', write: 'Écrire', speak: 'Parler' }[m], items: pickItems(allOf(m), 10), back: R() }); }
+      if (k.startsWith('m:')) { const m = k.slice(2); startSession({ title: { listen: 'Écouter', write: 'Écrire', speak: 'Parler', dialogue: 'Dialogues' }[m], items: pickItems(allOf(m).filter((x) => m !== 'dialogue' || chOf(x.chapter).num <= pathChapterNum()), m === 'dialogue' ? 3 : 10), back: R() }); }
     }));
   }
 
@@ -240,11 +241,12 @@
     if (c.commands.length) tabs.push(['commandes', 'Commandes (' + c.commands.length + ')']);
     if (c.formulas.length) tabs.push(['formules', 'Formulaire (' + c.formulas.length + ')']);
     const en = c.subject === 'anglais';
-    const poolFor = (t) => (en ? (t === 'quiz' ? MODES.choice(c).concat(MODES.listen(c)) : t === 'oral' ? MODES.speak(c) : MODES.write(c)) : t === 'quiz' ? c.quiz : c.exercises);
+    const poolFor = (t) => (en ? (t === 'quiz' ? MODES.choice(c).concat(MODES.listen(c)) : t === 'oral' ? MODES.speak(c) : t === 'dialogues' ? MODES.dialogue(c) : MODES.write(c)) : t === 'quiz' ? c.quiz : c.exercises);
     if (en && (c.words.length || c.phrases.length)) tabs.push(['vocab', 'Vocabulaire (' + (c.words.length + c.phrases.length) + ')']);
     if (en && c.verbs) tabs.push(['vocab', 'Tableau (' + c.verbs.length + ' verbes)']);
     tabs.push(['quiz', (en ? 'QCM et écoute' : 'Quiz') + ' (' + poolFor('quiz').length + ')'], ['exos', S.exo.label + ' (' + poolFor('exos').length + ')']);
     if (en) tabs.push(['oral', 'Parler (' + poolFor('oral').length + ')']);
+    if (en && poolFor('dialogues').length) tabs.push(['dialogues', 'Dialogues (' + poolFor('dialogues').length + ')']);
     const gens = gensOf(c.subject, c.id);
     if (gens.length) tabs.push(['calculs', (en ? 'Exercices générés' : 'Calculs') + ' (∞)']);
     const nm = APP.missions.filter((m) => m.chapter === c.id).length;
@@ -263,16 +265,17 @@
       h += '<div class="spread" style="margin-bottom:12px"><p class="muted" style="margin:0">Toutes les formules du chapitre, à connaître par cœur.</p><button class="btn sm" id="flashBtn">' + icon('flash') + ' Les réviser en flashcards</button></div><div class="card flat" style="padding:0">' + c.formulas.map((x) => formulaCard(x)).join('') + '</div>';
     } else if (tab === 'vocab') {
       h += '<div class="spread" style="margin-bottom:12px"><p class="muted" style="margin:0">Clique sur un mot pour l\'entendre.</p><button class="btn sm" id="flashBtn">' + icon('flash') + ' Flashcards du chapitre</button></div>' + vocabHtml(c, '');
-    } else if (tab === 'quiz' || tab === 'exos' || tab === 'oral') {
+    } else if (tab === 'quiz' || tab === 'exos' || tab === 'oral' || tab === 'dialogues') {
       const pool = poolFor(tab);
       const lv = { new: 0, weak: 0, learn: 0, master: 0 };
       for (const x of pool) lv[P.level(x.id)]++;
       const errs = pool.filter((x) => st.items[x.id] && st.items[x.id].ko > 0 && st.items[x.id].box <= 2).length;
       h += '<div class="card"><div class="grid g4 small" style="margin-bottom:14px"><div><span class="lvl new"></span><b>' + lv.new + '</b> jamais vus</div><div><span class="lvl weak"></span><b>' + lv.weak + '</b> à revoir</div><div><span class="lvl learn"></span><b>' + lv.learn + '</b> en cours</div><div><span class="lvl master"></span><b>' + lv.master + '</b> maîtrisés</div></div>';
-      h += '<div class="row"><button class="btn" data-start="smart">Session de 10 (intelligente)</button><button class="btn ghost" data-start="all">Tout (' + pool.length + ', mélangé)</button>' + (errs ? '<button class="btn ghost" data-start="errors">' + icon('redo') + ' Mes erreurs (' + errs + ')</button>' : '') + '</div>';
-      h += '<p class="muted small" style="margin:12px 0 0">' + (tab === 'oral' ? 'Appuie sur le micro et parle : l\'appli vérifie ta prononciation. Tu peux écouter le modèle avant.' : tab === 'quiz' ? 'Chaque mauvaise réponse est expliquée : pourquoi elle est fausse et pourquoi la bonne est juste.' : esc(S.exo.desc)) + '</p></div>';
-      h += '<div class="section-title"><h2>' + (tab === 'quiz' ? 'Questions' : 'Exercices') + '</h2>' + (pool.length > 80 ? '<span class="muted small">80 premiers sur ' + pool.length + '</span>' : '') + '</div><div class="card flat" style="padding:0">';
-      pool.slice(0, 80).forEach((x) => { h += '<div class="mission-item" style="cursor:pointer" data-one="' + x.id + '"><span class="lvl ' + P.level(x.id) + '"></span><span style="flex:1;min-width:0">' + md(x.mode === 'listen' ? x.q + ' (' + (x.say || '') + ')' : x.mode === 'speak' && x.show === 'en' ? 'Répète : ' + (x.say || '') : tab === 'quiz' ? x.q : x.prompt) + '</span><span class="pill">' + (x.level >= 3 ? 'difficile' : x.level === 2 ? 'moyen' : 'facile') + '</span></div>'; });
+      const dlg = tab === 'dialogues';
+      h += '<div class="row"><button class="btn" data-start="smart">Session de ' + (dlg ? 3 : 10) + ' (intelligente)</button><button class="btn ghost" data-start="all">Tout (' + pool.length + ', mélangé)</button>' + (errs ? '<button class="btn ghost" data-start="errors">' + icon('redo') + ' Mes erreurs (' + errs + ')</button>' : '') + '</div>';
+      h += '<p class="muted small" style="margin:12px 0 0">' + (dlg ? 'Écoute une petite conversation sans le texte, puis réponds aux questions. Le texte et sa traduction s\'affichent ensuite.' : tab === 'oral' ? 'Appuie sur le micro et parle : l\'appli vérifie ta prononciation. Tu peux écouter le modèle avant.' : tab === 'quiz' ? 'Chaque mauvaise réponse est expliquée : pourquoi elle est fausse et pourquoi la bonne est juste.' : esc(S.exo.desc)) + '</p></div>';
+      h += '<div class="section-title"><h2>' + (dlg ? 'Dialogues' : tab === 'quiz' ? 'Questions' : 'Exercices') + '</h2>' + (pool.length > 80 ? '<span class="muted small">80 premiers sur ' + pool.length + '</span>' : '') + '</div><div class="card flat" style="padding:0">';
+      pool.slice(0, 80).forEach((x) => { h += '<div class="mission-item" style="cursor:pointer" data-one="' + x.id + '"><span class="lvl ' + P.level(x.id) + '"></span><span style="flex:1;min-width:0">' + (x.mode === 'dialogue' ? '<b>' + esc(x.title) + '</b><div class="muted small">' + esc(x.context) + '</div>' : '') + md(x.mode === 'dialogue' ? '' : x.mode === 'listen' ? x.q + ' (' + (x.say || '') + ')' : x.mode === 'speak' && x.show === 'en' ? 'Répète : ' + (x.say || '') : tab === 'quiz' ? x.q : x.prompt) + '</span><span class="pill">' + (x.level >= 3 ? 'difficile' : x.level === 2 ? 'moyen' : 'facile') + '</span></div>'; });
       h += '</div>';
     } else if (tab === 'calculs') {
       h += '<p class="muted">Exercices générés aléatoirement : il y en a toujours de nouveaux. Idéal pour l\'entraînement quotidien.</p><div class="grid g2">';
@@ -292,8 +295,8 @@
     if (math) mathify(main);
     if (en) mountSay(main);
     if ($('#flashBtn')) $('#flashBtn').onclick = () => startSession({ title: 'Flashcards — ' + c.title, items: pickItems(c.cards, 15), back: '#/ch/' + c.id + '/' + tab });
-    $$('[data-start]').forEach((b) => (b.onclick = () => { const pool = poolFor(tab); const mode = b.dataset.start; startSession({ title: (tab === 'quiz' ? (en ? 'QCM et écoute' : 'Quiz') : tab === 'oral' ? 'Parler' : S.exo.label) + ' — ' + c.title, items: pickItems(pool, mode === 'all' ? pool.length : 10, mode), back: '#/ch/' + c.id + '/' + tab }); }));
-    $$('[data-one]').forEach((b) => (b.onclick = () => startSession({ title: 'Question', items: [findItem(b.dataset.one)], back: '#/ch/' + c.id + '/' + tab })));
+    $$('[data-start]').forEach((b) => (b.onclick = () => { const pool = poolFor(tab); const mode = b.dataset.start; startSession({ title: (tab === 'quiz' ? (en ? 'QCM et écoute' : 'Quiz') : tab === 'oral' ? 'Parler' : tab === 'dialogues' ? 'Dialogues' : S.exo.label) + ' — ' + c.title, items: pickItems(pool, mode === 'all' ? pool.length : tab === 'dialogues' ? 3 : 10, mode), back: '#/ch/' + c.id + '/' + tab }); }));
+    $$('[data-one]').forEach((b) => (b.onclick = () => startSession({ title: tab === 'dialogues' ? 'Dialogue' : 'Question', items: [findItem(b.dataset.one)], back: '#/ch/' + c.id + '/' + tab })));
     $$('[data-g]').forEach((b) => (b.onclick = () => startGen(b.dataset.g, '#/ch/' + c.id + '/calculs')));
     bindTry(main);
   }
@@ -376,14 +379,14 @@
   function itemKind(it) {
     if (it.subject === 'anglais' && it.kind !== 'card') {
       const m = it.mode || (it.kind === 'quiz' ? 'choice' : 'write');
-      return m === 'choice' ? 'qcm' : m === 'listen' ? 'elisten' : m === 'speak' ? 'espeak' : m === 'dictee' ? 'edictee' : 'ewrite';
+      return m === 'choice' ? 'qcm' : m === 'listen' ? 'elisten' : m === 'dialogue' ? 'edialog' : m === 'speak' ? 'espeak' : m === 'dictee' ? 'edictee' : 'ewrite';
     }
     if (it.kind === 'gen') return it.type === 'formula' ? 'mexo' : it.type === 'qcm' ? 'qcm' : 'input';
     if (it.kind === 'quiz') return it.type === 'input' ? 'input' : 'qcm';
     if (it.kind === 'exo') return it.subject === 'maths' ? 'mexo' : 'exo';
     return 'card';
   }
-  const KLABEL = { qcm: 'QCM', input: 'Réponse courte', exo: 'Tape la commande', mexo: 'Tape la formule', card: 'Flashcard', elisten: 'Écoute', ewrite: 'Écrire', edictee: 'Dictée', espeak: 'Oral' };
+  const KLABEL = { qcm: 'QCM', input: 'Réponse courte', exo: 'Tape la commande', mexo: 'Tape la formule', card: 'Flashcard', elisten: 'Écoute', ewrite: 'Écrire', edictee: 'Dictée', espeak: 'Oral', edialog: 'Dialogue' };
   function pageSession() {
     if (!S) { location.hash = R() + '/entrainement'; return; }
     if (S.i >= S.items.length) return renderSummary();
@@ -408,6 +411,12 @@
       h += '<div class="qtext">' + md(it.q) + '</div><div class="listen"><button class="btn play" id="playB">' + icon('speaker') + ' Écouter</button><button class="btn ghost" id="slowB">Lentement</button></div><div class="choices">' + U.shuffle(it.choices.map((c, i) => i)).map((oi, n) => '<button class="choice" data-o="' + oi + '"><span class="k">' + (n + 1) + '</span><span>' + md(it.choices[oi]) + '</span></button>').join('') + '</div>';
     } else if (k === 'ewrite' || k === 'edictee') {
       h += '<div class="qtext">' + md(it.prompt || it.q) + '</div>' + (k === 'edictee' ? '<div class="listen"><button class="btn play" id="playB" type="button">' + icon('speaker') + ' Écouter</button><button class="btn ghost" id="slowB" type="button">Lentement</button></div>' : '') + '<form class="ansin en-in" id="ansF"><input class="field" id="ans" lang="en" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + esc(it.placeholder || 'en anglais…') + '"><button class="btn">Valider</button></form>' + (!S.exam && it.hint ? '<div class="row" style="margin-top:10px"><button class="btn sm ghost" id="hintB">Indice</button></div><div id="hintBox"></div>' : '');
+    } else if (k === 'edialog') {
+      const keys = Object.keys(it.speakers);
+      h += '<div class="qtext">Écoute le dialogue, puis réponds aux questions.</div><div class="dlg-ctx">' + icon('chat') + '<div><b>' + esc(it.title) + '</b><div class="small">' + esc(it.context) + '</div><div class="small muted">Personnages : ' + keys.map((x) => esc(it.speakers[x].name)).join(' et ') + '</div></div></div>';
+      h += '<div class="listen"><button class="btn play" id="playB" type="button">' + icon('speaker') + ' Écouter</button><button class="btn ghost" id="slowB" type="button">Lentement</button>' + (S.exam ? '' : '<button class="btn ghost" id="txtB" type="button">Afficher le texte</button>') + '</div>';
+      h += '<div class="dlg hidden" id="dlgT">' + it.lines.map(([w, en, fr], i) => '<div class="dl s' + keys.indexOf(w) + '" data-i="' + i + '"><span class="dl-who">' + esc(it.speakers[w].name) + '</span><div class="dl-b"><span class="say" data-say="' + esc(en) + '" data-g="' + it.speakers[w].g + '">' + esc(en) + '</span><div class="dl-fr hidden">' + esc(fr) + '</div></div></div>').join('') + '</div>';
+      h += '<div class="dqs">' + it.questions.map((q, qi) => '<div class="dq" data-q="' + qi + '"><div class="dq-q"><span class="k">' + (qi + 1) + '</span>' + md(q.q) + '</div><div class="choices">' + U.shuffle(q.choices.map((c, i) => i)).map((oi, n) => '<button class="choice" data-o="' + oi + '"><span class="k">' + 'ABCD'[n] + '</span><span>' + md(q.choices[oi]) + '</span></button>').join('') + '</div><div class="dq-fb"></div></div>').join('') + '</div>';
     } else if (k === 'espeak') {
       const showEn = it.show === 'en';
       h += '<div class="qtext">' + md(it.prompt) + '</div>' + (showEn ? '<div class="en-big say" data-say="' + esc(it.say || it.answers[0]) + '">' + esc(it.answers[0]) + '</div>' : '') + '<div class="speak"><button class="mic" id="micB" aria-label="Parler">' + icon('mic') + '</button><div id="micS" class="small muted">' + (EN().canListen() ? 'Appuie sur le micro, puis parle.' : 'La reconnaissance vocale n\'est pas disponible sur ce navigateur : dis la phrase à voix haute, écoute le modèle et évalue-toi.') + '</div><div class="row" style="justify-content:center"><button class="btn sm ghost" id="modelB" type="button">' + icon('speaker') + ' Écouter le modèle</button>' + (EN().canListen() ? '' : '<button class="btn sm" id="selfB" type="button">Je l\'ai dit</button>') + '</div></div>';
@@ -459,7 +468,48 @@
       $('#playB').onclick = () => play(); $('#slowB').onclick = () => play(0.6);
       setTimeout(() => play(), 250);
     }
-    if (k === 'qcm' || k === 'elisten') {
+    if (k === 'edialog') {
+      const T = $('#dlgT');
+      const lines = it.lines.map(([w, t]) => ({ text: t, g: it.speakers[w].g }));
+      const hl = (i) => $$('.dl', T).forEach((x) => x.classList.toggle('on', +x.dataset.i === i));
+      const play = (r) => EN().playLines(lines, { rate: r, onLine: hl, onEnd: () => hl(-1) });
+      $('#playB').onclick = () => play(); $('#slowB').onclick = () => play(0.65);
+      setTimeout(() => play(), 300);
+      const ans = {};
+      let helped = false, over = false;
+      const showFr = (on) => { $$('.dl-fr', T).forEach((x) => x.classList.toggle('hidden', !on)); if ($('#txtB')) $('#txtB').textContent = on ? 'Masquer la traduction' : 'Voir la traduction'; };
+      if ($('#txtB')) $('#txtB').onclick = () => {
+        if (T.classList.contains('hidden')) { T.classList.remove('hidden'); if (!over) helped = true; $('#txtB').textContent = 'Voir la traduction'; return; }
+        showFr($('.dl-fr.hidden', T) !== null);
+      };
+      const lineBtn = (at) => { const l = it.lines[at]; return l ? ' ' + sayBtn(l[1], 'Réécouter').replace('data-say=', 'data-g="' + it.speakers[l[0]].g + '" data-say=') : ''; };
+      const finish = () => {
+        over = true;
+        const n = it.questions.length, good = it.questions.filter((q, i) => ans[i] === q.answer).length;
+        record(good === n && !helped, good + ' / ' + n, { score: good, n, chosen: ans, helped });
+        if (S.exam) { setTimeout(next, 300); return; }
+        T.classList.remove('hidden'); showFr(true);
+        for (const [i, q] of it.questions.entries()) if (ans[i] !== q.answer) { const x = $('.dl[data-i="' + q.at + '"]', T); if (x) x.classList.add('key'); }
+        showFb('<div class="fb ' + (good === n ? 'ok' : 'ko') + '"><h4>' + (good === n ? '✓ Tout compris !' : good + ' bonne' + (good > 1 ? 's' : '') + ' réponse' + (good > 1 ? 's' : '') + ' sur ' + n) + '</h4><div>' + (helped ? 'Tu as lu le texte avant de répondre : ce dialogue reviendra pour l\'écouter sans aide. ' : '') + 'Le dialogue est affiché au-dessus avec sa traduction' + (good < n ? ' (les répliques utiles sont surlignées)' : '') + ' : touche une réplique pour la réécouter, et répète-la à voix haute.</div></div>' + contBtn());
+      };
+      $$('.dq').forEach((dq) => {
+        const qi = +dq.dataset.q, q = it.questions[qi];
+        $$('.choice', dq).forEach((b) => (b.onclick = () => {
+          if (ans[qi] != null) return;
+          const o = +b.dataset.o; ans[qi] = o;
+          $$('.choice', dq).forEach((x) => { x.disabled = true; const xo = +x.dataset.o; if (S.exam) { if (xo === o) x.style.borderColor = 'var(--accent)'; } else if (xo === q.answer) x.classList.add('ok'); else if (xo === o) x.classList.add('ko'); });
+          if (!S.exam) {
+            const why = q.why && (q.why[o] || q.why[String(o)]);
+            const f = $('.dq-fb', dq);
+            f.innerHTML = o === q.answer ? '<div class="dq-r ok">✓ ' + md(q.explain) + lineBtn(q.at) + '</div>' : '<div class="dq-r ko">✗ ' + (why ? md(why) : 'Ce n\'est pas ce qui est dit.') + '<div><b>Bonne réponse :</b> ' + md(q.choices[q.answer]) + '</div><div>' + md(q.explain) + lineBtn(q.at) + '</div></div>';
+            mountSay(f);
+          }
+          if (Object.keys(ans).length === it.questions.length) finish();
+          else { const nx = $$('.dq').find((x) => ans[+x.dataset.q] == null); if (nx && !S.exam) setTimeout(() => nx.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150); }
+        }));
+      });
+      const prevC = cleanup; cleanup = () => { EN().stopSay(); if (prevC) prevC(); };
+    } else if (k === 'qcm' || k === 'elisten') {
       $$('.choice').forEach((b) => (b.onclick = () => {
         const o = +b.dataset.o, ok = o === it.answer;
         record(ok, it.choices[o], { chosen: o });
@@ -638,6 +688,12 @@
     if (it.pitfall) h += '<div class="callout warn"><b>Piège classique</b> ' + md(it.pitfall) + '</div>';
     return h + ficheLinks(it) + '</div>';
   }
+  // correction d'un dialogue : texte complet et traduit, puis chaque question
+  function dialogCorr(it, r) {
+    let h = '<div class="corr"><div class="dlg">' + it.lines.map(([w, en, fr]) => '<div class="dl s' + Object.keys(it.speakers).indexOf(w) + '"><span class="dl-who">' + esc(it.speakers[w].name) + '</span><div class="dl-b"><span class="say" data-say="' + esc(en) + '" data-g="' + it.speakers[w].g + '">' + esc(en) + '</span><div class="dl-fr">' + esc(fr) + '</div></div></div>').join('') + '</div><ol class="steps">';
+    it.questions.forEach((q, i) => { const c = r && r.chosen ? r.chosen[i] : null; h += '<li><b>' + md(q.q) + '</b><br>' + (c != null && c !== q.answer ? '<span class="muted">Ta réponse : ' + md(q.choices[c]) + '</span><br>' : '') + 'Bonne réponse : <b>' + md(q.choices[q.answer]) + '</b><br>' + md(q.explain) + '</li>'; });
+    return h + '</ol></div>';
+  }
   function ficheLinks(it) {
     const sec = secOf(it);
     const c = it.chapter ? chOf(it.chapter) : null;
@@ -682,8 +738,9 @@
     if (cleanup) { cleanup(); cleanup = null; }
     const res = S.results.filter((r) => !r.card);
     const cards = S.results.filter((r) => r.card);
-    const ok = res.filter((r) => r.ok).length;
-    const score = res.length ? ok / res.length : 1;
+    // un dialogue compte pour ses questions
+    const ok = res.reduce((a, r) => a + (r.n ? r.score : r.ok ? 1 : 0), 0), nq = res.reduce((a, r) => a + (r.n || 1), 0);
+    const score = nq ? ok / nq : 1;
     const dur = Math.round((Date.now() - S.start) / 1000);
     // étape du parcours du jour : on la coche, et on propose directement la suivante
     let pnext = null;
@@ -692,7 +749,7 @@
       if (pl && pl.date === S.pathDate) { if (!S.ended) stepDone(S.path); pnext = planSteps(pl).find((k) => !pl.done[k]) || null; }
       S.ended = true;
     }
-    let h = '<div class="page"><div class="sess summary"><div class="card" style="text-align:center"><div class="kicker">' + esc(S.title) + '</div><div class="big" style="color:' + (score >= 0.8 ? 'var(--ok)' : score >= 0.5 ? 'var(--warn)' : 'var(--ko)') + '">' + (res.length ? Math.round(score * 100) + '%' : '✓') + '</div><p class="muted">' + (res.length ? ok + ' bonne' + (ok > 1 ? 's' : '') + ' réponse' + (ok > 1 ? 's' : '') + ' sur ' + res.length : '') + (cards.length ? (res.length ? ' · ' : '') + cards.length + ' flashcard' + (cards.length > 1 ? 's' : '') : '') + ' · ' + Math.floor(dur / 60) + ' min ' + (dur % 60) + ' s</p>';
+    let h = '<div class="page"><div class="sess summary"><div class="card" style="text-align:center"><div class="kicker">' + esc(S.title) + '</div><div class="big" style="color:' + (score >= 0.8 ? 'var(--ok)' : score >= 0.5 ? 'var(--warn)' : 'var(--ko)') + '">' + (res.length ? Math.round(score * 100) + '%' : '✓') + '</div><p class="muted">' + (res.length ? ok + ' bonne' + (ok > 1 ? 's' : '') + ' réponse' + (ok > 1 ? 's' : '') + ' sur ' + nq : '') + (cards.length ? (res.length ? ' · ' : '') + cards.length + ' flashcard' + (cards.length > 1 ? 's' : '') : '') + ' · ' + Math.floor(dur / 60) + ' min ' + (dur % 60) + ' s</p>';
     h += '<p>' + (score >= 0.9 ? 'Excellent, c\'est maîtrisé !' : score >= 0.7 ? 'Bien joué ! Revois les quelques erreurs ci-dessous.' : score >= 0.5 ? 'C\'est en bonne voie : les erreurs reviendront bientôt en révision.' : 'Relis les fiches correspondantes puis retente : la répétition fait tout.') + '</p>';
     if (S.path) h += '<p class="small muted">Étape « ' + esc(PSTEPS[S.path][0]) + ' » terminée ✓' + (res.some((r) => !r.ok) ? ' — tes erreurs reviendront dans les prochaines révisions.' : '') + '</p><div class="row" style="justify-content:center">' + (pnext ? '<button class="btn" id="pnextB">Étape suivante : ' + esc(PSTEPS[pnext][0]) + ' →</button>' : '<a class="btn" href="' + PR() + '">Terminer le parcours ✓</a>') + (res.some((r) => !r.ok) ? '<button class="btn ghost" id="redoB">' + icon('redo') + ' Refaire mes erreurs</button>' : '') + (pnext ? '<a class="btn ghost" href="' + PR() + '">Retour au parcours</a>' : '') + '</div></div>';
     else h += '<div class="row" style="justify-content:center">' + (res.some((r) => !r.ok) ? '<button class="btn" id="redoB">' + icon('redo') + ' Refaire mes erreurs</button>' : '') + '<button class="btn ghost" id="againB">Nouvelle session</button><a class="btn ghost" href="' + S.back + '">Retour</a></div></div>';
@@ -706,13 +763,14 @@
         else if (k === 'exo') h += '<div class="small">Ta commande : <code>' + esc(r.answer) + '</code>' + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : <code>' + esc(it.answers[0]) + '</code>') + '</div>';
         else if (k === 'ewrite' || k === 'edictee') h += '<div class="small">Ta réponse : « ' + esc(r.answer) + ' »' + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : <b>' + esc(it.answers[0]) + '</b>') + '</div>';
         else if (k === 'espeak') h += '<div class="small">' + (r.heard ? 'Entendu : « ' + esc(r.heard) + ' »' : 'Auto-évaluation') + (r.ok ? ' ✓' : ' — phrase : <b>' + esc(it.answers[0]) + '</b>') + '</div>';
+        else if (k === 'edialog') h += '<div class="small">' + esc(it.context) + '<br>' + r.score + ' bonne' + (r.score > 1 ? 's' : '') + ' réponse' + (r.score > 1 ? 's' : '') + ' sur ' + r.n + (r.helped ? ' (avec le texte)' : '') + (r.ok ? ' ✓' : '') + '</div>';
         else if (k === 'elisten') h += '<div class="small">Phrase entendue : <b>' + esc(it.say) + '</b><br>Ta réponse : ' + md(it.choices[r.chosen] || '') + (r.ok ? ' ✓' : '<br>Bonne réponse : <b>' + md(it.choices[it.answer]) + '</b>') + '</div>';
         else if (k === 'mexo') h += '<div class="small">Ta réponse : ' + (r.res && r.res.texUser ? esc(r.res.texUser) : '<code>' + esc(r.answer) + '</code>') + (r.ok ? ' ✓' : '<br>' + (r.res ? r.res.msgs.map(md).join('<br>') : '') + '<br>Attendu : ' + (r.res && r.res.texExpected ? esc(r.res.texExpected) : '<code>' + esc(it.answer) + '</code>')) + '</div>';
         else h += '<div class="small">Ta réponse : <code>' + esc(r.answer) + '</code>' + (r.ok ? ' ✓' : ' — attendu : <code>' + esc(it.accept[0]) + '</code>') + '</div>';
         if (!r.ok || S.exam) {
           const c = it.chapter ? chOf(it.chapter) : null;
           const topic = it.topic || (it.gen && APP.generators[it.gen] ? APP.generators[it.gen].label : '');
-          h += '<details class="sumcorr"><summary>Correction détaillée' + (c ? ' <span class="muted">— ' + esc(c.title) + (topic ? ' › ' + esc(topic) : '') + '</span>' : '') + '</summary>' + correctionHtml(it, {}) + '</details>';
+          h += '<details class="sumcorr"><summary>Correction détaillée' + (c ? ' <span class="muted">— ' + esc(c.title) + (topic ? ' › ' + esc(topic) : '') + '</span>' : '') + '</summary>' + (k === 'edialog' ? dialogCorr(it, r) : correctionHtml(it, {})) + '</details>';
         }
         h += '</div>';
       }
@@ -747,8 +805,8 @@
     let h = '<div class="page"><div class="kicker">' + esc(Sj.title) + '</div><h1>Entraînement</h1><p class="muted">La <b>répétition espacée</b> repropose chaque élément au bon moment : juste après une erreur, puis à 1, 3, 7, 16 et 35 jours quand tu réussis.</p>';
     h += '<div class="next" style="margin:18px 0"><div style="flex:1"><b style="font-size:1.08rem">Révision du jour</b><p>' + (due ? due + ' élément' + (due > 1 ? 's' : '') + ' à revoir + des nouveautés' : 'Un mélange adapté à ton niveau') + '</p></div><button class="btn" id="smartB">Commencer</button></div>';
     h += '<div class="card"><div class="spread"><b>Chapitres</b><div class="chips" id="chSel"><button data-c="*" class="' + (sel.length === chs().length ? 'on' : '') + '">Tous</button>' + chs().map((c) => '<button data-c="' + c.id + '" class="' + (sel.includes(c.id) && sel.length !== chs().length ? 'on' : '') + '" title="' + esc(c.title) + '">' + c.num + '</button>').join('') + '</div></div><div class="grid g3" style="margin-top:14px">';
-    const T = isEn() ? [['choice', 'quiz', 'QCM', 'Choisis la bonne réponse : vocabulaire, grammaire, conjugaison.'], ['listen', 'ear', 'Écouter', 'Écoute un mot ou une phrase et retrouve son sens (ou écris ce que tu entends).'], ['write', 'pen', 'Écrire', Sj.exo.desc], ['speak', 'mic', 'Parler', 'Dis le mot ou la phrase au micro : l\'appli vérifie ta prononciation.'], ['card', 'flash', 'Flashcards', Sj.cards]] : [['quiz', 'quiz', 'Quiz de cours', 'QCM avec l\'explication de chaque mauvaise réponse.'], ['exo', SUBJ === 'maths' ? 'sigma' : 'cmd', Sj.exo.label, Sj.exo.desc], ['card', 'flash', 'Flashcards', Sj.cards]];
-    for (const [k, i, t, d] of T) h += '<div class="card flat qa"><span class="ico">' + icon(i) + '</span><b>' + esc(t) + '</b><span>' + esc(d) + '</span><div class="row" style="margin-top:8px"><button class="btn sm" data-t="' + k + '" data-n="10">10</button><button class="btn sm ghost" data-t="' + k + '" data-n="20">20</button><button class="btn sm ghost" data-t="' + k + '" data-n="999">Tout</button></div></div>';
+    const T = isEn() ? [['choice', 'quiz', 'QCM', 'Choisis la bonne réponse : vocabulaire, grammaire, conjugaison.'], ['listen', 'ear', 'Écouter', 'Écoute un mot ou une phrase et retrouve son sens (ou écris ce que tu entends).'], ['write', 'pen', 'Écrire', Sj.exo.desc], ['speak', 'mic', 'Parler', 'Dis le mot ou la phrase au micro : l\'appli vérifie ta prononciation.'], ['dialogue', 'chat', 'Dialogues', 'Écoute une petite conversation, puis réponds aux questions de compréhension.'], ['card', 'flash', 'Flashcards', Sj.cards]] : [['quiz', 'quiz', 'Quiz de cours', 'QCM avec l\'explication de chaque mauvaise réponse.'], ['exo', SUBJ === 'maths' ? 'sigma' : 'cmd', Sj.exo.label, Sj.exo.desc], ['card', 'flash', 'Flashcards', Sj.cards]];
+    for (const [k, i, t, d] of T) h += '<div class="card flat qa"><span class="ico">' + icon(i) + '</span><b>' + esc(t) + '</b><span>' + esc(d) + '</span><div class="row" style="margin-top:8px">' + (k === 'dialogue' ? '<button class="btn sm" data-t="' + k + '" data-n="3">3</button><button class="btn sm ghost" data-t="' + k + '" data-n="6">6</button>' : '<button class="btn sm" data-t="' + k + '" data-n="10">10</button><button class="btn sm ghost" data-t="' + k + '" data-n="20">20</button>') + '<button class="btn sm ghost" data-t="' + k + '" data-n="999">Tout</button></div></div>';
     h += '</div></div>';
     h += '<div class="grid g2" style="margin-top:14px"><div class="card qa"><span class="ico">' + icon('clock') + '</span><b>Examen blanc</b><span>20 questions mélangées en 25 minutes. Correction détaillée à la fin.</span><div class="row" style="margin-top:8px"><button class="btn sm" id="examB">Lancer l\'examen</button></div></div>';
     h += '<div class="card qa"><span class="ico">' + icon('redo') + '</span><b>Mes erreurs</b><span>' + (errs.length ? errs.length + ' question' + (errs.length > 1 ? 's' : '') + ' ratée' + (errs.length > 1 ? 's' : '') + ' récemment.' : 'Aucune erreur en attente : bravo !') + '</span><div class="row" style="margin-top:8px"><button class="btn sm" id="errB" ' + (errs.length ? '' : 'disabled') + '>Les retravailler</button></div></div></div>';
@@ -772,7 +830,7 @@
       $$('#chSel button').forEach((x) => x.classList.toggle('on', x.dataset.c === '*' ? sel.length === chs().length : sel.includes(x.dataset.c) && sel.length !== chs().length));
     }));
     $('#smartB').onclick = startSmart;
-    $$('[data-t]').forEach((b) => (b.onclick = () => { const k = b.dataset.t, n = +b.dataset.n; const pool = allOf(k, sel); startSession({ title: { quiz: 'Quiz', exo: Sj.exo.label, card: 'Flashcards', choice: 'QCM', listen: 'Écouter', write: 'Écrire', speak: 'Parler' }[k], items: pickItems(pool, Math.min(n, pool.length), n >= 999 ? 'all' : 'smart'), back: R() + '/entrainement' }); }));
+    $$('[data-t]').forEach((b) => (b.onclick = () => { const k = b.dataset.t, n = +b.dataset.n; const pool = allOf(k, sel); startSession({ title: { quiz: 'Quiz', exo: Sj.exo.label, card: 'Flashcards', choice: 'QCM', listen: 'Écouter', write: 'Écrire', speak: 'Parler', dialogue: 'Dialogues' }[k], items: pickItems(pool, Math.min(n, pool.length), n >= 999 ? 'all' : 'smart'), back: R() + '/entrainement' }); }));
     $('#examB').onclick = () => startExam(sel);
     $('#errB').onclick = () => startSession({ title: 'Mes erreurs', items: U.shuffle(errs).slice(0, 20), back: R() + '/entrainement' });
     $$('[data-g]').forEach((b) => (b.onclick = () => startGen(b.dataset.g)));
@@ -810,6 +868,9 @@
     const items = { review: take(due.filter((x) => x.mode !== 'speak' || ns++ < 1).slice(0, 6).map((x) => x.id)) };
     items.lesson = take(ids(W, '-c')).concat(authored('choice', W.length ? 2 : 4));
     items.listen = topUp(take(ids(U.shuffle(words).slice(0, 3), '-l').concat(ids(PH, '-l'))).concat(authored('listen', 1)), 'listen', 4);
+    // un petit dialogue : chapitres terminés, ou chapitre en cours dès que la moitié de ses mots est vue
+    const half = (() => { const all = u.words.concat(u.phrases); return all.length && all.filter((x) => seen[x.id]).length >= all.length / 2; })();
+    items.listen = items.listen.concat(take(pickItems(allOf('dialogue', null, 'anglais').filter((x) => chOf(x.chapter).num < c.num || (x.chapter === c.id && half)), 1).map((x) => x.id)));
     items.write = topUp(take(ids(words.slice(0, 2), '-w').concat(ids(verbs.slice(0, 3), '-p'), ids(verbs.slice(3, 5), '-pp'), ids(PH.slice(0, 1), '-w'))).concat(authored('write', 2)), 'write', 4).slice(0, 6);
     items.speak = topUp(take(ids(words.slice(-2), '-s').concat(ids(verbs.slice(0, 3), '-s'), ids(PH.slice(0, 2), '-s'))), 'speak', 3);
     return { date: U.today(), round: round || 1, ch: c.id, words: W.map((w) => w.id), phrases: PH.map((p) => p.id), sec: sec ? sec.id : null, items, done: {} };
@@ -837,6 +898,8 @@
     while (d[U.today(t)]) { s++; t = new Date(t.getTime() - 86400000); }
     return s;
   }
+  // chapitre où en est le parcours (les dialogues proposés hors parcours ne vont pas plus loin)
+  function pathChapterNum() { const seen = pathState().seen, l = chs('anglais'); const c = l.find((x) => { const u = unitsOf(x); return u.words.concat(u.phrases).some((w) => !seen[w.id]); }); return c ? c.num : 99; }
   const genFor = (c) => gensOf('anglais').filter(([, x]) => chOf(x.chapter) && chOf(x.chapter).num < c.num);
   function startStep(key) {
     if (key === 'lesson') { location.hash = PR() + '/lecon'; return; }
@@ -856,7 +919,7 @@
     const desc = {
       review: pl_(pl.items.review.length, 'élément') + ' déjà vu' + (pl.items.review.length > 1 ? 's' : '') + ' à revoir, au bon moment pour bien les retenir.',
       lesson: [sec ? 'La fiche « ' + sec.title + ' »' : '', W.length ? (W.length > 1 ? W.length + ' nouveaux ' : '1 nouveau ') + (W[0].verb ? 'verbe' : 'mot') + (W.length > 1 ? 's' : '') + ' : ' + W.map(unitEn).join(', ') : '', PH.length ? pl_(PH.length, 'phrase') + ' utile' + (PH.length > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') + '.',
-      listen: 'Reconnaître les mots et les phrases à l\'oral (' + n('listen') + ' questions).',
+      listen: 'Reconnaître les mots et les phrases à l\'oral (' + n('listen') + ' questions' + (pl.items.listen.some((id) => /-d-\d/.test(id)) ? ', dont un petit dialogue' : '') + ').',
       write: 'Les écrire en anglais : le correcteur explique chaque faute (' + n('write') + ' questions).',
       speak: 'Les dire à voix haute, au micro (' + n('speak') + ' questions).'
     };
