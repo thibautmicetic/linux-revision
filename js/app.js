@@ -1184,7 +1184,20 @@
       const pill = $('#offline');
       const ready = () => { if (pill) { pill.textContent = 'Disponible hors ligne'; pill.classList.add('ok'); } };
       if (reg.active) ready(); else navigator.serviceWorker.ready.then(ready);
+      // on cherche une nouvelle version à chaque retour sur l'application (une app d'écran d'accueil reste souvent en mémoire)
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update().catch(() => {}); });
     }).catch(() => {});
+    // Le cache sert toujours l'ancienne version au premier affichage : dès que la nouvelle est installée, on recharge.
+    // Pas pendant un exercice, un TP ou dans le terminal, pour ne rien perdre : on attend la page suivante.
+    let hadSw = !!navigator.serviceWorker.controller;
+    const busy = () => /^#\/(session|terminal|tp)\b/.test(location.hash);
+    const reloadNow = () => { try { sessionStorage.setItem('updated', '1'); } catch (e) { /* rien */ } location.reload(); };
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadSw) { hadSw = true; return; } // première installation : la page est déjà la bonne
+      if (!busy()) return reloadNow();
+      window.addEventListener('hashchange', function wait() { if (!busy()) { window.removeEventListener('hashchange', wait); reloadNow(); } });
+    });
+    try { if (sessionStorage.getItem('updated')) { sessionStorage.removeItem('updated'); setTimeout(() => toast('Application mise à jour'), 400); } } catch (e) { /* rien */ }
   }
   if (!location.hash && SUBJ === 'anglais') history.replaceState(null, '', R('anglais') + '/parcours');
   route();

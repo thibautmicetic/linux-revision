@@ -1,5 +1,5 @@
 /* Service worker : met toute l'application en cache pour un fonctionnement 100 % hors ligne. (généré par tools/build-sw.py) */
-const CACHE = 'linuxrev-cf994b2eb4';
+const CACHE = 'linuxrev-aaee35ca15';
 const ASSETS = [
  "./",
  "index.html",
